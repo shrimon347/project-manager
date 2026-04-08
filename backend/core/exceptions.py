@@ -1,0 +1,72 @@
+from typing import Any
+
+from django.utils.encoding import force_str
+from rest_framework import status
+from rest_framework.exceptions import APIException, ValidationError
+from rest_framework.response import Response
+from rest_framework.views import exception_handler
+
+
+class CustomAPIException(APIException):
+    status_code = status.HTTP_400_BAD_REQUEST
+    default_detail = "Something went wrong."
+    default_code = "error"
+
+    def __init__(self, detail=None, code=None, errors=None):
+        super().__init__(detail=detail, code=code)
+        self.errors = errors or {}
+
+
+class NotFoundException(CustomAPIException):
+    status_code = status.HTTP_404_NOT_FOUND
+    default_detail = "Resource not found."
+    default_code = "not_found"
+
+
+class ConflictException(CustomAPIException):
+    status_code = status.HTTP_409_CONFLICT
+    default_detail = "Resource already exists."
+    default_code = "conflict"
+
+
+def _normalize_errors(raw_errors: Any) -> Any:
+    if isinstance(raw_errors, dict):
+        return {key: _normalize_errors(value) for key, value in raw_errors.items()}
+    if isinstance(raw_errors, list):
+        return [_normalize_errors(item) for item in raw_errors]
+    return force_str(raw_errors)
+
+
+def custom_exception_handler(exc, context):
+    response = exception_handler(exc, context)
+
+    if response is None:
+        return Response(
+            {
+                "success": False,
+                "message": "An unexpected error occurred. Please try again.",
+                "errors": {},
+            },
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        )
+
+    if isinstance(exc, ValidationError):
+        message = "Validation failed."
+        errors = _normalize_errors(response.data)
+    elif isinstance(exc, CustomAPIException):
+        message = force_str(exc.detail)
+        errors = _normalize_errors(exc.errors)
+    else:
+        detail = response.data.get("detail") if isinstance(response.data, dict) else "Request failed."
+        message = force_str(detail)
+        errors = {}
+        if isinstance(response.data, dict):
+            errors = _normalize_errors({k: v for k, v in response.data.items() if k != "detail"})
+
+    response.data = {
+        "success": False,
+        "message": message,
+        "errors": errors,
+    }
+    return response
+
