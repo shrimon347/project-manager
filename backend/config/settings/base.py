@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     "drf_spectacular",
     "core",
     "apps.users",
+    "apps.verifications",
 ]
 
 MIDDLEWARE = [
@@ -100,6 +101,7 @@ STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+AUTH_USER_MODEL = "users.User"
 
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
