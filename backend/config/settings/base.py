@@ -155,6 +155,12 @@ SPECTACULAR_SETTINGS = {
     "SERVE_INCLUDE_SCHEMA": False,
     "SCHEMA_PATH_PREFIX": r"^/api/v[0-9]+",
     "SCHEMA_PATH_PREFIX_TRIM": False,
+    "TAGS": [
+        {
+            "name": "Authentication",
+            "description": "User authentication endpoints (register, login, refresh, logout).",
+        }
+    ],
 }
 
 LOGGING = {

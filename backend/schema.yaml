@@ -4,15 +4,15 @@ info:
   version: 1.0.0
   description: Production-ready DRF APIs with service-layer architecture.
 paths:
-  /api/v1/users/auth/login/:
+  /api/v1/auth/login/:
     post:
-      operationId: users_auth_login_create
+      operationId: auth_login_create
       description: |-
         Handle user login.
 
         Validates credentials and delegates token issuance to service layer.
       tags:
-      - users
+      - Authentication
       requestBody:
         content:
           application/json:
@@ -35,15 +35,15 @@ paths:
               schema:
                 $ref: '#/components/schemas/Login'
           description: ''
-  /api/v1/users/auth/logout/:
+  /api/v1/auth/logout/:
     post:
-      operationId: users_auth_logout_create
+      operationId: auth_logout_create
       description: |-
         Handle user logout.
 
         Accepts refresh token and delegates revocation to service layer.
       tags:
-      - users
+      - Authentication
       requestBody:
         content:
           application/json:
@@ -65,15 +65,43 @@ paths:
               schema:
                 $ref: '#/components/schemas/Logout'
           description: ''
-  /api/v1/users/auth/register/:
+  /api/v1/auth/refresh/:
     post:
-      operationId: users_auth_register_create
+      operationId: auth_refresh_create
+      description: Handle access token refresh with refresh-token rotation.
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/RefreshToken'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RefreshToken'
+          description: ''
+  /api/v1/auth/register/:
+    post:
+      operationId: auth_register_create
       description: |-
         Handle user registration.
 
         Validates request payload and delegates account creation to service layer.
       tags:
-      - users
+      - Authentication
       requestBody:
         content:
           application/json:
@@ -134,6 +162,21 @@ components:
           type: string
       required:
       - refresh
+    RefreshToken:
+      type: object
+      description: |-
+        Validate refresh payload.
+
+        Inputs:
+        - refresh: refresh JWT token
+
+        Outputs:
+        - validated_data containing refresh token string
+      properties:
+        refresh:
+          type: string
+      required:
+      - refresh
     Register:
       type: object
       description: |-
@@ -172,3 +215,6 @@ components:
       type: http
       scheme: bearer
       bearerFormat: JWT
+tags:
+- name: Authentication
+  description: User authentication endpoints (register, login, refresh, logout).

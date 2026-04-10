@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework import permissions
 from rest_framework.views import APIView
 
@@ -17,6 +18,7 @@ from .serializers import (
 from .services import AuthService
 
 
+@extend_schema(tags=["Authentication"])
 class RegisterView(APIView):
     """Handle user registration.
 
@@ -37,6 +39,7 @@ class RegisterView(APIView):
         return build_register_response(user_payload=result)
 
 
+@extend_schema(tags=["Authentication"])
 class LoginView(APIView):
     """Handle user login.
 
@@ -53,6 +56,7 @@ class LoginView(APIView):
         return build_login_response(access_token=tokens["access"], refresh_token=tokens["refresh"])
 
 
+@extend_schema(tags=["Authentication"])
 class LogoutView(APIView):
     """Handle user logout.
 
@@ -70,6 +74,7 @@ class LogoutView(APIView):
         return build_logout_response()
 
 
+@extend_schema(tags=["Authentication"])
 class RefreshTokenView(APIView):
     """Handle access token refresh with refresh-token rotation."""
 
