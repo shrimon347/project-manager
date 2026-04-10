@@ -4,23 +4,17 @@ from rest_framework import status
 from core.responses import success_response
 
 
-def build_register_response(*, user_payload):
-    return success_response(
-        message="Registration successful. Verify your email.",
-        data={"user": user_payload},
-        status_code=status.HTTP_201_CREATED,
-    )
+def set_refresh_cookie(*, response, refresh_token):
+    """Attach refresh token cookie to response.
 
+    Inputs:
+    - response: DRF/Django response object
+    - refresh_token: JWT refresh token string
 
-def build_login_response(*, access_token, refresh_token):
-    response = success_response(
-        message="Login successful.",
-        data={
-            "token_type": "Bearer",
-            "access_token": access_token,
-        },
-        status_code=status.HTTP_200_OK,
-    )
+    Outputs:
+    - response with refresh cookie set
+    """
+
     response.set_cookie(
         settings.AUTH_REFRESH_COOKIE_NAME,
         refresh_token,
@@ -33,12 +27,16 @@ def build_login_response(*, access_token, refresh_token):
     return response
 
 
-def build_logout_response():
-    response = success_response(
-        message="Logout successful.",
-        data={},
-        status_code=status.HTTP_200_OK,
-    )
+def clear_refresh_cookie(*, response):
+    """Remove refresh token cookie from response.
+
+    Inputs:
+    - response: DRF/Django response object
+
+    Outputs:
+    - response with refresh cookie cleared
+    """
+
     response.delete_cookie(
         settings.AUTH_REFRESH_COOKIE_NAME,
         domain=settings.AUTH_COOKIE_DOMAIN,
@@ -70,6 +68,15 @@ def build_refresh_response(*, access_token, refresh_token):
 
 
 def get_refresh_token_from_request(request):
+    """Read refresh token from request body or fallback cookie.
+
+    Inputs:
+    - request: DRF request object
+
+    Outputs:
+    - mutable payload dict containing refresh token when available
+    """
+
     payload = request.data.copy()
     cookie_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME)
     if "refresh" not in payload and cookie_refresh:

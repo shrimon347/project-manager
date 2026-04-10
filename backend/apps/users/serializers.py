@@ -1,4 +1,5 @@
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 
 User = get_user_model()
@@ -82,3 +83,45 @@ class RefreshTokenSerializer(serializers.Serializer):
     """
 
     refresh = serializers.CharField()
+
+
+class ProfileUpdateSerializer(serializers.Serializer):
+    """Validate profile update payload.
+
+    Inputs:
+    - name: optional display name
+    - profilePicture: optional avatar image
+
+    Outputs:
+    - validated_data with profile fields to update
+    """
+
+    name = serializers.CharField(max_length=50, required=False, allow_blank=True, allow_null=True)
+    profilePicture = serializers.ImageField(required=False, allow_null=True)
+
+
+class ChangePasswordSerializer(serializers.Serializer):
+    """Validate change-password payload.
+
+    Inputs:
+    - currentPassword: current account password
+    - newPassword: new password candidate
+    - confirmPassword: confirmation password
+
+    Outputs:
+    - validated_data with password update fields
+    """
+
+    currentPassword = serializers.CharField(write_only=True, trim_whitespace=False)
+    newPassword = serializers.CharField(write_only=True, trim_whitespace=False)
+    confirmPassword = serializers.CharField(write_only=True, trim_whitespace=False)
+
+    def validate(self, attrs):
+        if attrs["newPassword"] != attrs["confirmPassword"]:
+            raise serializers.ValidationError({"confirmPassword": "Passwords do not match."})
+
+        user = self.context.get("user")
+        validate_password(attrs["newPassword"], user=user)
+        return attrs
+
+

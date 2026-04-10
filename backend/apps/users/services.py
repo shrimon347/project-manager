@@ -1,11 +1,9 @@
-from datetime import timedelta
-
 from django.contrib.auth import authenticate, get_user_model
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
 
-from apps.verifications.models import Verification, VerificationType
+from apps.verifications.services import VerificationService
 from core.exceptions import ConflictException, ForbiddenException, UnauthorizedException
 
 
@@ -41,14 +39,7 @@ class AuthService:
             is_email_verified=False,
         )
 
-        expires_at = timezone.now() + timedelta(hours=24)
-        _, raw_token = Verification.issue_token(
-            user=user,
-            verification_type=VerificationType.EMAIL_VERIFY,
-            expires_at=expires_at,
-        )
-
-        AuthService._send_verification_email(email=email, token=raw_token)
+        VerificationService.issue_email_verification(user=user)
 
         return {
             "id": str(user.id),
@@ -77,7 +68,7 @@ class AuthService:
             raise ForbiddenException(detail="User account is inactive.", code="inactive_user")
 
         if not user.is_email_verified:
-            AuthService._ensure_active_verification(user=user)
+            VerificationService.ensure_active_email_verification(user=user)
             raise ForbiddenException(
                 detail="Email is not verified.",
                 code="email_not_verified",
@@ -158,47 +149,38 @@ class AuthService:
             ) from exc
 
     @staticmethod
-    def _send_verification_email(*, email: str, token: str) -> None:
-        """Trigger verification email delivery.
+    def get_profile(*, user):
+        """Return authenticated user profile payload."""
 
-        Inputs:
-        - email: recipient email
-        - token: raw verification token
-
-        Outputs:
-        - None
-        """
-
-        print(f"[MOCK EMAIL] Send verification token to {email}: {token}")
+        return {
+            "id": str(user.id),
+            "email": user.email,
+            "name": user.name,
+            "profilePicture": user.avatar_url(),
+            "is_email_verified": user.is_email_verified,
+        }
 
     @staticmethod
-    def _ensure_active_verification(*, user) -> None:
-        """Ensure unverified user has a valid email verification token.
+    def update_profile(*, user, name=None, profile_picture=None):
+        """Update authenticated user profile fields."""
 
-        If no active token exists, issue a new one and trigger email delivery.
-        A short cooldown avoids spamming repeated login attempts.
-        """
+        if name is not None:
+            user.name = name
+        if profile_picture is not None:
+            user.avatar = profile_picture
+        user.save(update_fields=["name", "avatar", "updated_at"])
+        return AuthService.get_profile(user=user)
 
-        cooldown_key = f"email-verification:cooldown:{user.id}"
-        if cache.get(cooldown_key):
-            return
+    @staticmethod
+    def change_password(*, user, current_password, new_password):
+        """Change authenticated user password after current-password check."""
 
-        now = timezone.now()
-        has_active_token = Verification.objects.filter(
-            user=user,
-            verification_type=VerificationType.EMAIL_VERIFY,
-            is_used=False,
-            expires_at__gt=now,
-        ).exists()
+        if not user.check_password(current_password):
+            raise UnauthorizedException(
+                detail="Current password is incorrect.",
+                code="invalid_current_password",
+                errors={"currentPassword": "Current password is incorrect."},
+            )
+        user.set_password(new_password)
+        user.save(update_fields=["password", "updated_at"])
 
-        if has_active_token:
-            return
-
-        expires_at = now + timedelta(hours=24)
-        _, raw_token = Verification.issue_token(
-            user=user,
-            verification_type=VerificationType.EMAIL_VERIFY,
-            expires_at=expires_at,
-        )
-        AuthService._send_verification_email(email=user.email, token=raw_token)
-        cache.set(cooldown_key, "1", timeout=60)
