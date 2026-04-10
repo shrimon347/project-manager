@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from datetime import timedelta
 
 from dotenv import load_dotenv
 
@@ -19,6 +20,12 @@ if ENV_FILE:
     load_dotenv(BASE_DIR / ENV_FILE)
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me-in-production")
+WEBSITE_URL = os.getenv("WEBSITE_URL", "http://127.0.0.1:8000")
+AUTH_COOKIE_SECURE = os.getenv("AUTH_COOKIE_SECURE", "False").lower() == "true"
+AUTH_COOKIE_SAMESITE = os.getenv("AUTH_COOKIE_SAMESITE", "Lax")
+AUTH_COOKIE_DOMAIN = os.getenv("AUTH_COOKIE_DOMAIN", "").strip() or None
+AUTH_COOKIE_PATH = os.getenv("AUTH_COOKIE_PATH", "/")
+AUTH_REFRESH_COOKIE_NAME = os.getenv("AUTH_REFRESH_COOKIE_NAME", "refresh_token")
 
 DEBUG = os.getenv("DJANGO_DEBUG", "False").lower() == "true"
 
@@ -31,6 +38,7 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "rest_framework_simplejwt.token_blacklist",
     "rest_framework",
     "drf_spectacular",
     "core",
@@ -107,6 +115,9 @@ REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_PAGINATION_CLASS": "core.pagination.StandardResultsSetPagination",
     "EXCEPTION_HANDLER": "core.exceptions.custom_exception_handler",
+    "DEFAULT_AUTHENTICATION_CLASSES": (
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ),
     "DEFAULT_THROTTLE_CLASSES": [
         "rest_framework.throttling.AnonRateThrottle",
         "rest_framework.throttling.UserRateThrottle",
@@ -117,11 +128,33 @@ REST_FRAMEWORK = {
     },
 }
 
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ROTATE_REFRESH_TOKENS": True,
+    "BLACKLIST_AFTER_ROTATION": True,
+    "UPDATE_LAST_LOGIN": True,
+}
+
+REDIS_URL = os.getenv("REDIS_URL", "redis://127.0.0.1:6379/1")
+CACHES = {
+    "default": {
+        "BACKEND": "django_redis.cache.RedisCache",
+        "LOCATION": REDIS_URL,
+        "OPTIONS": {
+            "CLIENT_CLASS": "django_redis.client.DefaultClient",
+        },
+        "KEY_PREFIX": "project_manager",
+    }
+}
+
 SPECTACULAR_SETTINGS = {
     "TITLE": "Project Manager API",
     "DESCRIPTION": "Production-ready DRF APIs with service-layer architecture.",
     "VERSION": "1.0.0",
     "SERVE_INCLUDE_SCHEMA": False,
+    "SCHEMA_PATH_PREFIX": r"^/api/v[0-9]+",
+    "SCHEMA_PATH_PREFIX_TRIM": False,
 }
 
 LOGGING = {
@@ -140,6 +173,7 @@ LOGGING = {
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
+            "level": "ERROR",
             "formatter": "standard",
             "filters": ["request_context"],
         },
@@ -154,22 +188,27 @@ LOGGING = {
     },
     "loggers": {
         "django": {
-            "handlers": ["console", "app_file"],
+            "handlers": ["app_file"],
             "level": "INFO",
             "propagate": False,
         },
         "django.request": {
             "handlers": ["console", "app_file"],
-            "level": "WARNING",
+            "level": "ERROR",
+            "propagate": False,
+        },
+        "django.server": {
+            "handlers": ["console", "app_file"],
+            "level": "ERROR",
             "propagate": False,
         },
         "django.db.backends": {
-            "handlers": ["console", "app_file"],
+            "handlers": ["app_file"],
             "level": "WARNING",
             "propagate": False,
         },
         "app.request": {
-            "handlers": ["console", "app_file"],
+            "handlers": ["app_file"],
             "level": "INFO",
             "propagate": False,
         },

@@ -1,0 +1,174 @@
+openapi: 3.0.3
+info:
+  title: Project Manager API
+  version: 1.0.0
+  description: Production-ready DRF APIs with service-layer architecture.
+paths:
+  /api/v1/users/auth/login/:
+    post:
+      operationId: users_auth_login_create
+      description: |-
+        Handle user login.
+
+        Validates credentials and delegates token issuance to service layer.
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Login'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Login'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Login'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Login'
+          description: ''
+  /api/v1/users/auth/logout/:
+    post:
+      operationId: users_auth_logout_create
+      description: |-
+        Handle user logout.
+
+        Accepts refresh token and delegates revocation to service layer.
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Logout'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Logout'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Logout'
+          description: ''
+  /api/v1/users/auth/register/:
+    post:
+      operationId: users_auth_register_create
+      description: |-
+        Handle user registration.
+
+        Validates request payload and delegates account creation to service layer.
+      tags:
+      - users
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Register'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/Register'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/Register'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Register'
+          description: ''
+components:
+  schemas:
+    Login:
+      type: object
+      description: |-
+        Validate login payload.
+
+        Inputs:
+        - email: user email
+        - password: plain password
+
+        Outputs:
+        - validated_data with normalized credentials
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          writeOnly: true
+      required:
+      - email
+      - password
+    Logout:
+      type: object
+      description: |-
+        Validate logout payload.
+
+        Inputs:
+        - refresh: refresh JWT token
+
+        Outputs:
+        - validated_data containing refresh token string
+      properties:
+        refresh:
+          type: string
+      required:
+      - refresh
+    Register:
+      type: object
+      description: |-
+        Validate registration payload.
+
+        Inputs:
+        - email: unique email address
+        - name: display name
+        - password: account password
+        - confirm_password: repeated password
+
+        Outputs:
+        - validated_data with normalized fields for service usage
+      properties:
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          maxLength: 50
+        password:
+          type: string
+          writeOnly: true
+          minLength: 8
+        confirm_password:
+          type: string
+          writeOnly: true
+          minLength: 8
+      required:
+      - confirm_password
+      - email
+      - name
+      - password
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
