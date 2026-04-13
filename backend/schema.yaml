@@ -4,13 +4,68 @@ info:
   version: 1.0.0
   description: Production-ready DRF APIs with service-layer architecture.
 paths:
+  /api/v1/activity/{resource_id}/:
+    get:
+      operationId: activity_retrieve
+      description: |-
+        Handle activity list by resource endpoint.
+
+        Parameters:
+        - request: authenticated request
+        - resource_id: target resource UUID
+
+        Returns:
+        - standardized success response with activity records
+      parameters:
+      - in: path
+        name: resource_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Activity
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ActivityLogResponse'
+          description: ''
+  /api/v1/auth/forgot-password/:
+    post:
+      operationId: auth_forgot_password_create
+      description: Issue password reset token for provided email.
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ForgotPassword'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ForgotPassword'
+          description: ''
   /api/v1/auth/login/:
     post:
       operationId: auth_login_create
-      description: |-
-        Handle user login.
-
-        Validates credentials and delegates token issuance to service layer.
+      description: Authenticate user, return access token, and set refresh cookie.
       tags:
       - Authentication
       requestBody:
@@ -38,10 +93,7 @@ paths:
   /api/v1/auth/logout/:
     post:
       operationId: auth_logout_create
-      description: |-
-        Handle user logout.
-
-        Accepts refresh token and delegates revocation to service layer.
+      description: Revoke refresh token and clear refresh cookie.
       tags:
       - Authentication
       requestBody:
@@ -68,7 +120,7 @@ paths:
   /api/v1/auth/refresh/:
     post:
       operationId: auth_refresh_create
-      description: Handle access token refresh with refresh-token rotation.
+      description: Rotate refresh token and return a fresh access token.
       tags:
       - Authentication
       requestBody:
@@ -96,10 +148,7 @@ paths:
   /api/v1/auth/register/:
     post:
       operationId: auth_register_create
-      description: |-
-        Handle user registration.
-
-        Validates request payload and delegates account creation to service layer.
+      description: Register a new account and return safe user payload.
       tags:
       - Authentication
       requestBody:
@@ -124,8 +173,1144 @@ paths:
               schema:
                 $ref: '#/components/schemas/Register'
           description: ''
+  /api/v1/auth/reset-password/:
+    post:
+      operationId: auth_reset_password_create
+      description: Reset password using email, token, and new password.
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ResetPassword'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ResetPassword'
+          description: ''
+  /api/v1/auth/verify-email/:
+    post:
+      operationId: auth_verify_email_create
+      description: Verify email with token payload.
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/VerifyEmail'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/VerifyEmail'
+          description: ''
+  /api/v1/comments/task/{task_id}/:
+    get:
+      operationId: comments_task_retrieve
+      description: |-
+        Handle direct task comment create/list endpoints.
+
+        Parameters:
+        - request: authenticated request
+        - task_id: task UUID
+
+        Returns:
+        - standardized success response with comment payload(s)
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Comments
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentCreate'
+          description: ''
+    post:
+      operationId: comments_task_create
+      description: |-
+        Handle direct task comment create/list endpoints.
+
+        Parameters:
+        - request: authenticated request
+        - task_id: task UUID
+
+        Returns:
+        - standardized success response with comment payload(s)
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Comments
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/CommentCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentCreate'
+          description: ''
+  /api/v1/projects/{project_id}:
+    get:
+      operationId: projects_retrieve
+      description: |-
+        Handle project detail endpoint.
+
+        Parameters:
+        - request: authenticated request
+        - project_id: project UUID
+
+        Returns:
+        - standardized success response with project details
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectResponse'
+          description: ''
+  /api/v1/projects/{project_id}/tasks:
+    get:
+      operationId: projects_tasks_retrieve
+      description: |-
+        Handle project task listing endpoint.
+
+        Parameters:
+        - request: authenticated request
+        - project_id: project UUID
+
+        Returns:
+        - standardized success response with project tasks
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Projects
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectTaskResponse'
+          description: ''
+  /api/v1/projects/{workspace_id}/create-project:
+    post:
+      operationId: projects_create_project_create
+      description: |-
+        Handle project creation endpoint.
+
+        Parameters:
+        - request: authenticated request with validated project payload
+        - workspace_id: workspace UUID
+
+        Returns:
+        - standardized success response with project payload
+      parameters:
+      - in: path
+        name: workspace_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Projects
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProjectCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProjectCreate'
+          description: ''
+  /api/v1/tasks/{project_id}/create-task:
+    post:
+      operationId: tasks_create_task_create
+      description: |-
+        Handle task creation endpoint.
+
+        Parameters:
+        - request: authenticated request with task payload
+        - project_id: project UUID
+
+        Returns:
+        - standardized success response with created task
+      parameters:
+      - in: path
+        name: project_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCreate'
+          description: ''
+  /api/v1/tasks/{task_id}:
+    get:
+      operationId: tasks_retrieve
+      description: |-
+        Handle task detail endpoint.
+
+        Parameters:
+        - request: authenticated request
+        - task_id: task UUID
+
+        Returns:
+        - standardized success response with task details
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          description: ''
+  /api/v1/tasks/{task_id}/achieved:
+    post:
+      operationId: tasks_achieved_create
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskResponse'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskResponse'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskResponse'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          description: ''
+  /api/v1/tasks/{task_id}/activity:
+    get:
+      operationId: tasks_activity_retrieve
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskActivityResponse'
+          description: ''
+  /api/v1/tasks/{task_id}/add-comment:
+    post:
+      operationId: tasks_add_comment_create
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskCommentCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskCommentCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskCommentCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskCommentCreate'
+          description: ''
+  /api/v1/tasks/{task_id}/add-subtask:
+    post:
+      operationId: tasks_add_subtask_create
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubTaskCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubTaskCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubTaskCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubTaskCreate'
+          description: ''
+  /api/v1/tasks/{task_id}/assignees:
+    put:
+      operationId: tasks_assignees_update
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskAssignees'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskAssignees'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskAssignees'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskAssignees'
+          description: ''
+  /api/v1/tasks/{task_id}/comments:
+    get:
+      operationId: tasks_comments_retrieve
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentResponse'
+          description: ''
+  /api/v1/tasks/{task_id}/description:
+    put:
+      operationId: tasks_description_update
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateField'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateField'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateField'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskUpdateField'
+          description: ''
+  /api/v1/tasks/{task_id}/priority:
+    put:
+      operationId: tasks_priority_update
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskPriority'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskPriority'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskPriority'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskPriority'
+          description: ''
+  /api/v1/tasks/{task_id}/status:
+    put:
+      operationId: tasks_status_update
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskStatus'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskStatus'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskStatus'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskStatus'
+          description: ''
+  /api/v1/tasks/{task_id}/title:
+    put:
+      operationId: tasks_title_update
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateField'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateField'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskUpdateField'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskUpdateField'
+          description: ''
+  /api/v1/tasks/{task_id}/update-subtask/{subtask_id}:
+    put:
+      operationId: tasks_update_subtask_update
+      parameters:
+      - in: path
+        name: subtask_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubTaskUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/SubTaskUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/SubTaskUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubTaskUpdate'
+          description: ''
+  /api/v1/tasks/{task_id}/watch:
+    post:
+      operationId: tasks_watch_create
+      parameters:
+      - in: path
+        name: task_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Tasks
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TaskWatchResponse'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TaskWatchResponse'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TaskWatchResponse'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskWatchResponse'
+          description: ''
+  /api/v1/tasks/my-tasks:
+    get:
+      operationId: tasks_my_tasks_retrieve
+      tags:
+      - Tasks
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TaskResponse'
+          description: ''
+  /api/v1/user/change-password/:
+    put:
+      operationId: user_change_password_update
+      description: Change authenticated user's password.
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ChangePassword'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChangePassword'
+          description: ''
+  /api/v1/user/profile/:
+    get:
+      operationId: user_profile_retrieve
+      description: Return authenticated user profile.
+      tags:
+      - Authentication
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileUpdate'
+          description: ''
+    put:
+      operationId: user_profile_update
+      description: Update authenticated user profile fields.
+      tags:
+      - Authentication
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/ProfileUpdate'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileUpdate'
+          description: ''
+  /api/v1/workspaces/:
+    get:
+      operationId: workspaces_list
+      description: |-
+        Get all workspaces for the authenticated user.
+
+        Parameters:
+        - request: authenticated request
+
+        Returns:
+        - standardized success response with workspace list
+      tags:
+      - Workspaces
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceCreate'
+          description: ''
+    post:
+      operationId: workspaces_create
+      description: |-
+        Create a workspace and add requester as owner-member.
+
+        Parameters:
+        - request: authenticated request with workspace payload
+
+        Returns:
+        - standardized success response with workspace data
+      tags:
+      - Workspaces
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceCreate'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkspaceCreate'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkspaceCreate'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceCreate'
+          description: ''
+  /api/v1/workspaces/{workspace_id}/:
+    get:
+      operationId: workspaces_retrieve
+      description: |-
+        Handle workspace detail endpoint.
+
+        Parameters:
+        - request: authenticated API request
+        - workspace_id: workspace UUID
+
+        Returns:
+        - standardized success response with workspace details and members
+      parameters:
+      - in: path
+        name: workspace_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Workspaces
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceDetailResponse'
+          description: ''
+  /api/v1/workspaces/{workspace_id}/invite-member/:
+    post:
+      operationId: workspaces_invite_member_create
+      description: |-
+        Handle workspace invitation creation endpoint.
+
+        Parameters:
+        - request: authenticated API request
+        - workspace_id: workspace UUID
+
+        Returns:
+        - standardized success response with invite metadata
+      parameters:
+      - in: path
+        name: workspace_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Workspaces
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceInvite'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkspaceInvite'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkspaceInvite'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceInvite'
+          description: ''
+  /api/v1/workspaces/{workspace_id}/invite/accept/:
+    post:
+      operationId: workspaces_invite_accept
+      description: |-
+        Handle direct invite acceptance endpoint.
+
+        Parameters:
+        - request: authenticated API request
+        - workspace_id: workspace UUID
+
+        Returns:
+        - standardized success response with joined workspace data
+      parameters:
+      - in: path
+        name: workspace_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Workspaces
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceSummaryResponse'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkspaceSummaryResponse'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkspaceSummaryResponse'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceSummaryResponse'
+          description: ''
+  /api/v1/workspaces/{workspace_id}/projects/:
+    get:
+      operationId: workspaces_projects_list
+      description: |-
+        Handle workspace projects endpoint with membership access control.
+
+        Parameters:
+        - request: authenticated API request
+        - workspace_id: workspace UUID
+
+        Returns:
+        - standardized success response with project list
+      parameters:
+      - in: path
+        name: workspace_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Workspaces
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceProjectResponse'
+          description: ''
+  /api/v1/workspaces/{workspace_id}/stats/:
+    get:
+      operationId: workspaces_stats_retrieve
+      description: |-
+        Handle workspace stats endpoint.
+
+        Parameters:
+        - request: authenticated API request
+        - workspace_id: workspace UUID
+
+        Returns:
+        - standardized success response with aggregated workspace stats
+      parameters:
+      - in: path
+        name: workspace_id
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - Workspaces
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceStatsResponse'
+          description: ''
+  /api/v1/workspaces/invite/accept-token/:
+    post:
+      operationId: workspaces_invite_accept_token_create
+      description: |-
+        Handle invite acceptance via JWT token endpoint.
+
+        Parameters:
+        - request: authenticated API request with token payload
+
+        Returns:
+        - standardized success response with joined workspace data
+      tags:
+      - Workspaces
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WorkspaceInviteToken'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/WorkspaceInviteToken'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/WorkspaceInviteToken'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorkspaceInviteToken'
+          description: ''
 components:
   schemas:
+    ActivityLogResponse:
+      type: object
+      description: Serialize activity log payload.
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: string
+          format: uuid
+        details: {}
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - action
+      - created_at
+      - details
+      - id
+      - resource_id
+      - resource_type
+      - user_id
+    ChangePassword:
+      type: object
+      description: |-
+        Validate change-password payload.
+
+        Inputs:
+        - currentPassword: current account password
+        - newPassword: new password candidate
+        - confirmPassword: confirmation password
+
+        Outputs:
+        - validated_data with password update fields
+      properties:
+        currentPassword:
+          type: string
+          writeOnly: true
+        newPassword:
+          type: string
+          writeOnly: true
+        confirmPassword:
+          type: string
+          writeOnly: true
+      required:
+      - confirmPassword
+      - currentPassword
+      - newPassword
+    CommentCreate:
+      type: object
+      description: Validate task comment creation payload.
+      properties:
+        text:
+          type: string
+        mentions: {}
+        reactions: {}
+        attachments: {}
+      required:
+      - text
+    CommentResponse:
+      type: object
+      description: Serialize task comment response payload.
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        task_id:
+          type: string
+          format: uuid
+        author_id:
+          type: string
+          format: uuid
+        mentions: {}
+        reactions: {}
+        attachments: {}
+        is_edited:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - attachments
+      - author_id
+      - created_at
+      - id
+      - is_edited
+      - mentions
+      - reactions
+      - task_id
+      - text
+    ForgotPassword:
+      type: object
+      description: |-
+        Validate forgot-password payload.
+
+        Inputs:
+        - email: account email address
+
+        Outputs:
+        - normalized email in validated_data
+      properties:
+        email:
+          type: string
+          format: email
+      required:
+      - email
     Login:
       type: object
       description: |-
@@ -162,6 +1347,182 @@ components:
           type: string
       required:
       - refresh
+    NullEnum:
+      enum:
+      - null
+    ProfileUpdate:
+      type: object
+      description: |-
+        Validate profile update payload.
+
+        Inputs:
+        - name: optional display name
+        - profilePicture: optional avatar image
+
+        Outputs:
+        - validated_data with profile fields to update
+      properties:
+        name:
+          type: string
+          nullable: true
+          maxLength: 50
+        profilePicture:
+          type: string
+          format: uri
+          nullable: true
+    ProjectCreate:
+      type: object
+      description: Validate project creation payload.
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/ProjectStatusEnum'
+          default: Planning
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          nullable: true
+        progress:
+          type: integer
+          maximum: 100
+          minimum: 0
+          default: 0
+      required:
+      - title
+    ProjectMemberResponse:
+      type: object
+      description: Serialize project member response payload.
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        role:
+          $ref: '#/components/schemas/ProjectMemberRoleEnum'
+        tags: {}
+      required:
+      - email
+      - name
+      - role
+      - tags
+      - user_id
+    ProjectMemberRoleEnum:
+      enum:
+      - manager
+      - contributor
+      - viewer
+      type: string
+      description: |-
+        * `manager` - Manager
+        * `contributor` - Contributor
+        * `viewer` - Viewer
+    ProjectResponse:
+      type: object
+      description: Serialize project response payload.
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        workspace_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+        start_date:
+          type: string
+          format: date
+          nullable: true
+        due_date:
+          type: string
+          format: date
+          nullable: true
+        progress:
+          type: integer
+        created_by:
+          type: string
+          format: uuid
+        is_archived:
+          type: boolean
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/ProjectMemberResponse'
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - created_at
+      - created_by
+      - description
+      - due_date
+      - id
+      - is_archived
+      - members
+      - progress
+      - start_date
+      - status
+      - title
+      - workspace_id
+    ProjectStatusEnum:
+      enum:
+      - Planning
+      - In Progress
+      - On Hold
+      - Completed
+      - Cancelled
+      type: string
+      description: |-
+        * `Planning` - Planning
+        * `In Progress` - In Progress
+        * `On Hold` - On Hold
+        * `Completed` - Completed
+        * `Cancelled` - Cancelled
+    ProjectTaskResponse:
+      type: object
+      description: Serialize project-task listing payload.
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        status:
+          type: string
+        priority:
+          type: string
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        is_archived:
+          type: boolean
+      required:
+      - due_date
+      - id
+      - is_archived
+      - priority
+      - status
+      - title
     RefreshToken:
       type: object
       description: |-
@@ -210,6 +1571,471 @@ components:
       - email
       - name
       - password
+    ResetPassword:
+      type: object
+      description: |-
+        Validate reset-password payload.
+
+        Inputs:
+        - email: account email address
+        - token: password reset token
+        - newPassword: new password candidate
+        - confirmPassword: confirmation password
+
+        Outputs:
+        - normalized/reset-ready payload in validated_data
+      properties:
+        email:
+          type: string
+          format: email
+        token:
+          type: string
+        newPassword:
+          type: string
+          writeOnly: true
+        confirmPassword:
+          type: string
+          writeOnly: true
+      required:
+      - confirmPassword
+      - email
+      - newPassword
+      - token
+    SubTaskCreate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+      required:
+      - title
+    SubTaskUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        completed:
+          type: boolean
+    TaskActivityResponse:
+      type: object
+      description: Serialize task activity response payload.
+      properties:
+        id:
+          type: string
+          format: uuid
+        user_id:
+          type: string
+          format: uuid
+        action:
+          type: string
+        resource_type:
+          type: string
+        resource_id:
+          type: string
+          format: uuid
+        details: {}
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - action
+      - created_at
+      - details
+      - id
+      - resource_id
+      - resource_type
+      - user_id
+    TaskAssignees:
+      type: object
+      properties:
+        value:
+          type: array
+          items:
+            type: string
+            format: uuid
+    TaskCommentCreate:
+      type: object
+      properties:
+        text:
+          type: string
+        mentions: {}
+        reactions: {}
+        attachments: {}
+      required:
+      - text
+    TaskCreate:
+      type: object
+      description: Validate task creation payload.
+      properties:
+        title:
+          type: string
+          maxLength: 200
+        description:
+          type: string
+          nullable: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/TaskStatusEnum'
+          default: To Do
+        priority:
+          allOf:
+          - $ref: '#/components/schemas/TaskPriorityEnum'
+          default: Medium
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        estimated_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,2})?$
+          nullable: true
+        actual_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,2})?$
+          nullable: true
+        tags: {}
+        assignee_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+      required:
+      - title
+    TaskPriority:
+      type: object
+      properties:
+        priority:
+          $ref: '#/components/schemas/TaskPriorityEnum'
+      required:
+      - priority
+    TaskPriorityEnum:
+      enum:
+      - Low
+      - Medium
+      - High
+      type: string
+      description: |-
+        * `Low` - Low
+        * `Medium` - Medium
+        * `High` - High
+    TaskResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+        priority:
+          type: string
+        project_id:
+          type: string
+          format: uuid
+        assignee_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        watcher_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        due_date:
+          type: string
+          format: date-time
+          nullable: true
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        estimated_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,2})?$
+          nullable: true
+        actual_hours:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,5}(?:\.\d{0,2})?$
+          nullable: true
+        tags: {}
+        created_by:
+          type: string
+          format: uuid
+        is_archived:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - actual_hours
+      - assignee_ids
+      - completed_at
+      - created_at
+      - created_by
+      - description
+      - due_date
+      - estimated_hours
+      - id
+      - is_archived
+      - priority
+      - project_id
+      - status
+      - tags
+      - title
+      - watcher_ids
+    TaskStatus:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/TaskStatusEnum'
+      required:
+      - status
+    TaskStatusEnum:
+      enum:
+      - To Do
+      - In Progress
+      - Review
+      - Done
+      type: string
+      description: |-
+        * `To Do` - To Do
+        * `In Progress` - In Progress
+        * `Review` - Review
+        * `Done` - Done
+    TaskUpdateField:
+      type: object
+      description: Validate generic task update field payload.
+      properties:
+        value:
+          type: string
+      required:
+      - value
+    TaskWatchResponse:
+      type: object
+      description: Serialize watch-toggle response payload.
+      properties:
+        task_id:
+          type: string
+          format: uuid
+        watched:
+          type: boolean
+      required:
+      - task_id
+      - watched
+    VerifyEmail:
+      type: object
+      description: |-
+        Validate verify-email payload.
+
+        Inputs:
+        - email: account email address
+        - token: email verification token
+
+        Outputs:
+        - normalized email and token in validated_data
+      properties:
+        email:
+          type: string
+          format: email
+        token:
+          type: string
+      required:
+      - email
+      - token
+    WorkspaceCreate:
+      type: object
+      description: Validate workspace creation payload for service layer usage.
+      properties:
+        name:
+          type: string
+          maxLength: 120
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+          default: '#FF5733'
+          maxLength: 16
+      required:
+      - name
+    WorkspaceDetailResponse:
+      type: object
+      description: Serialize workspace detail payload for response validation.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+        owner_id:
+          type: string
+          format: uuid
+        role:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/WorkspaceRoleEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        created_at:
+          type: string
+          format: date-time
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/WorkspaceMemberResponse'
+      required:
+      - color
+      - created_at
+      - description
+      - id
+      - members
+      - name
+      - owner_id
+      - role
+    WorkspaceInvite:
+      type: object
+      description: Validate invite payload for service layer usage.
+      properties:
+        email:
+          type: string
+          format: email
+        role:
+          allOf:
+          - $ref: '#/components/schemas/WorkspaceRoleEnum'
+          default: member
+      required:
+      - email
+    WorkspaceInviteToken:
+      type: object
+      description: Validate invite-token acceptance payload for service layer usage.
+      properties:
+        token:
+          type: string
+      required:
+      - token
+    WorkspaceMemberResponse:
+      type: object
+      description: Serialize workspace member payload for response validation.
+      properties:
+        id:
+          type: string
+          format: uuid
+        email:
+          type: string
+          format: email
+        name:
+          type: string
+          nullable: true
+        role:
+          $ref: '#/components/schemas/WorkspaceRoleEnum'
+        joined_at:
+          type: string
+          format: date-time
+      required:
+      - email
+      - id
+      - joined_at
+      - name
+      - role
+    WorkspaceProjectResponse:
+      type: object
+      description: Serialize workspace project payload for response validation.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        status:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - created_at
+      - id
+      - name
+      - status
+    WorkspaceRoleEnum:
+      enum:
+      - owner
+      - admin
+      - member
+      - viewer
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `admin` - Admin
+        * `member` - Member
+        * `viewer` - Viewer
+    WorkspaceStatsResponse:
+      type: object
+      description: Serialize workspace stats payload for response validation.
+      properties:
+        workspace_id:
+          type: string
+          format: uuid
+        member_count:
+          type: integer
+        project_count:
+          type: integer
+        projects_by_status:
+          type: object
+          additionalProperties:
+            type: integer
+      required:
+      - member_count
+      - project_count
+      - projects_by_status
+      - workspace_id
+    WorkspaceSummaryResponse:
+      type: object
+      description: Serialize workspace summary payload for response validation.
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+        owner_id:
+          type: string
+          format: uuid
+        role:
+          nullable: true
+          oneOf:
+          - $ref: '#/components/schemas/WorkspaceRoleEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        created_at:
+          type: string
+          format: date-time
+      required:
+      - color
+      - created_at
+      - description
+      - id
+      - name
+      - owner_id
+      - role
   securitySchemes:
     jwtAuth:
       type: http
