@@ -45,6 +45,10 @@ INSTALLED_APPS = [
     "apps.users",
     "apps.verifications",
     "apps.workspaces",
+    "apps.project",
+    "apps.task",
+    "apps.comment",
+    "apps.activity",
 ]
 
 MIDDLEWARE = [
@@ -162,6 +166,13 @@ SPECTACULAR_SETTINGS = {
             "description": "User authentication endpoints (register, login, refresh, logout).",
         }
     ],
+    "ENUM_NAME_OVERRIDES": {
+        "WorkspaceRoleEnum": "apps.workspaces.models.WorkspaceRole",
+        "ProjectMemberRoleEnum": "apps.project.models.ProjectMemberRole",
+        "ProjectStatusEnum": "apps.project.models.ProjectStatus",
+        "TaskStatusEnum": "apps.task.models.TaskStatus",
+        "TaskPriorityEnum": "apps.task.models.TaskPriority",
+    },
 }
 
 LOGGING = {
