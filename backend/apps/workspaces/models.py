@@ -30,6 +30,11 @@ class Workspace(BaseModel):
         through="WorkspaceMember",
         related_name="workspaces",
     )
+    projects = models.ManyToManyField(
+        "project.Project",
+        related_name="linked_workspaces",
+        blank=True,
+    )
 
     class Meta:
         ordering = ["-created_at"]

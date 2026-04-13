@@ -94,13 +94,12 @@ class WorkspaceService:
         - list of project payloads
         """
         workspace = WorkspaceService._get_member_workspace(user=user, workspace_id=workspace_id)
-        if not hasattr(workspace, "projects"):
-            return []
-        projects = workspace.projects.all().order_by("-created_at")
+        projects = workspace.workspace_projects.all().order_by("-created_at")
         return [
             {
                 "id": str(project.id),
                 "name": getattr(project, "name", ""),
+                "title": getattr(project, "title", ""),
                 "status": getattr(project, "status", None),
                 "created_at": project.created_at,
             }
@@ -120,15 +119,14 @@ class WorkspaceService:
         """
         workspace = WorkspaceService._get_member_workspace(user=user, workspace_id=workspace_id)
         member_count = workspace.workspace_memberships.count()
-        project_count = workspace.projects.count() if hasattr(workspace, "projects") else 0
+        project_count = workspace.workspace_projects.count()
         projects_by_status = {}
-        if hasattr(workspace, "projects"):
-            status_rows = (
-                workspace.projects.values("status")
-                .annotate(total=Count("id"))
-                .order_by()
-            )
-            projects_by_status = {row["status"] or "unknown": row["total"] for row in status_rows}
+        status_rows = (
+            workspace.workspace_projects.values("status")
+            .annotate(total=Count("id"))
+            .order_by()
+        )
+        projects_by_status = {row["status"] or "unknown": row["total"] for row in status_rows}
         return {
             "workspace_id": str(workspace.id),
             "member_count": member_count,
