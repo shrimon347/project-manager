@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     "core",
     "apps.users",
     "apps.verifications",
+    "apps.workspaces",
 ]
 
 MIDDLEWARE = [
