@@ -123,6 +123,14 @@ class VerificationService:
         print(f"[MOCK EMAIL] Send password reset token to {email}: {token}")
 
     @staticmethod
+    def send_twofa_otp_email(*, email, otp, expires_in_minutes=5):
+        """Dispatch two-factor OTP email via provider hook."""
+
+        print(
+            f"[MOCK EMAIL] Send 2FA OTP to {email}: {otp} (expires in {expires_in_minutes} minutes)"
+        )
+
+    @staticmethod
     def _validate_active_verification(*, user, raw_token, verification_type):
         """Validate token hash, active state, and expiry for a user."""
 
