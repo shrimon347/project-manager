@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Fira_Code, Geist, Lora } from "next/font/google";
 import "./globals.css";
+import { Providers } from "./providers";
 
 const fontSans = Geist({
     subsets: ["latin"],
@@ -28,11 +29,11 @@ export default function RootLayout({
     children: React.ReactNode;
 }>) {
     return (
-        <html lang="en">
+        <html lang="en" suppressHydrationWarning>
             <body
                 className={`${fontSans.variable} ${fontSerif.variable} ${fontMono.variable} antialiased`}
             >
-                {children}
+                <Providers>{children}</Providers>
             </body>
         </html>
     );
