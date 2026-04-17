@@ -71,6 +71,13 @@ export function LoginForm({
                         >
                             Sign up
                         </Link>
+                        <span className="mx-1 text-muted-foreground">·</span>
+                        <Link
+                            href="/resend-verification"
+                            className="underline"
+                        >
+                            Resend verification
+                        </Link>
                     </FieldDescription>
                 </Field>
             </FieldGroup>

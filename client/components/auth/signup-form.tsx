@@ -74,7 +74,8 @@ export function SignupForm({
             await registerUser(payload).unwrap();
             reset();
             toast.success("Account created successfully.", {
-                description: "You can now login to your account",
+                description:
+                    "Check your email for a verification link. You can request a new one from the login page if needed.",
                 icon: <CheckCircle className="text-green-500" />,
             });
             router.push("/login");
