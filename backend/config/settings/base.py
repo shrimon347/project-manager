@@ -21,6 +21,8 @@ if ENV_FILE:
 
 SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "change-me-in-production")
 WEBSITE_URL = os.getenv("WEBSITE_URL", "http://127.0.0.1:8000")
+# Public web app (e.g. Next.js) — used in emails for links users click (verify-email, etc.).
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000").rstrip("/")
 
 # Browser clients (e.g. Next.js on :3000) call the API on another origin — CORS is required.
 # Set CORS_ALLOWED_ORIGINS in .env for production (comma-separated), e.g.

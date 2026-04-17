@@ -6,6 +6,7 @@ from rest_framework.views import APIView
 from core.responses import success_response
 from .serializers import (
     ForgotPasswordSerializer,
+    ResendVerificationEmailSerializer,
     ResetPasswordSerializer,
     VerifyEmailSerializer,
 )
@@ -33,6 +34,28 @@ class VerifyEmailView(APIView):
             data={},
             status_code=status.HTTP_200_OK,
         )
+
+
+@extend_schema(tags=["Authentication"])
+class ResendVerificationEmailView(APIView):
+    """Issue a new email verification link for an unverified account."""
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = ResendVerificationEmailSerializer
+
+    def post(self, request):
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        email = serializer.validated_data["email"]
+        sent = VerificationService.try_resend_verification_email(email=email)
+        if sent:
+            message = "We sent a new verification email. Check your inbox."
+        else:
+            message = (
+                "If an account exists for this address and is not verified yet, "
+                "we sent a new confirmation email."
+            )
+        return success_response(message=message, data={}, status_code=status.HTTP_200_OK)
 
 
 @extend_schema(tags=["Authentication"])

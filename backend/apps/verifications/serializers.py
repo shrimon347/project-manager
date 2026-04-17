@@ -20,6 +20,15 @@ class VerifyEmailSerializer(serializers.Serializer):
         return value.strip().lower()
 
 
+class ResendVerificationEmailSerializer(serializers.Serializer):
+    """Request another email verification link (same shape as forgot-password email)."""
+
+    email = serializers.EmailField()
+
+    def validate_email(self, value):
+        return value.strip().lower()
+
+
 class ForgotPasswordSerializer(serializers.Serializer):
     """Validate forgot-password payload.
 

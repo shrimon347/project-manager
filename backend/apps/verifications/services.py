@@ -1,11 +1,13 @@
 from datetime import timedelta
+from urllib.parse import urlencode
 
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
 from django.utils import timezone
 
 from apps.verifications.models import Verification, VerificationType
-from core.exceptions import CustomAPIException, UnauthorizedException
+from core.exceptions import ConflictException, CustomAPIException, UnauthorizedException
 
 User = get_user_model()
 
@@ -111,10 +113,41 @@ class VerificationService:
         cache.set(cooldown_key, "1", timeout=60)
 
     @staticmethod
+    def try_resend_verification_email(*, email: str) -> bool:
+        """Send a fresh verification email if the user exists and is unverified.
+
+        Returns True if an email was sent, False if no user exists (generic response in view).
+        Raises ConflictException if the address is already verified.
+        Raises CustomAPIException if resend is rate-limited.
+        """
+
+        user = User.objects.filter(email=email).first()
+        if not user:
+            return False
+        if user.is_email_verified:
+            raise ConflictException(
+                detail="This email is already verified.",
+                code="already_verified",
+                errors={"email": "You can sign in with this address."},
+            )
+        cooldown_key = f"email-verification:resend:{user.id}"
+        if cache.get(cooldown_key):
+            raise CustomAPIException(
+                detail="Please wait before requesting another verification email.",
+                code="resend_cooldown",
+                errors={"email": "Try again in a minute."},
+            )
+        cache.set(cooldown_key, "1", timeout=60)
+        VerificationService.issue_email_verification(user=user)
+        return True
+
+    @staticmethod
     def _send_verification_email(*, email, token):
         """Dispatch verification email via provider hook."""
 
-        print(f"[MOCK EMAIL] Send verification token to {email}: {token}")
+        query = urlencode({"email": email, "token": token})
+        verify_url = f"{settings.FRONTEND_URL}/verify-email?{query}"
+        print(f"[MOCK EMAIL] Send verification to {email}\n  Link: {verify_url}")
 
     @staticmethod
     def _send_password_reset_email(*, email, token):
