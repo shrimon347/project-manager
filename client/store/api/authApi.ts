@@ -1,4 +1,12 @@
 import { baseApi } from "./baseApi";
+import { setAccessToken } from "@/store/slices/authSlice";
+import type {
+    AuthEnvelope,
+    Login2faResponseData,
+    LoginRequest,
+    LoginResponseData,
+    LogoutResponseData,
+} from "@/store/types/auth.types";
 
 export const authApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
@@ -10,11 +18,45 @@ export const authApi = baseApi.injectEndpoints({
             }),
         }),
 
-        login: builder.mutation({
+        login: builder.mutation<
+            AuthEnvelope<LoginResponseData | Login2faResponseData>,
+            LoginRequest
+        >({
             query: (data) => ({
                 url: "auth/login/",
                 method: "POST",
                 body: data,
+            }),
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    if ("access_token" in data.data) {
+                        dispatch(setAccessToken(data.data.access_token));
+                    }
+                } catch {
+                    // handled by caller
+                }
+            },
+        }),
+
+        refreshToken: builder.mutation<AuthEnvelope<LoginResponseData>, void>({
+            query: () => ({
+                url: "auth/refresh/",
+                method: "POST",
+            }),
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    const { data } = await queryFulfilled;
+                    dispatch(setAccessToken(data.data.access_token));
+                } catch {
+                    // handled by base query/auth guard
+                }
+            },
+        }),
+        logout: builder.mutation<AuthEnvelope<LogoutResponseData>, void>({
+            query: () => ({
+                url: "auth/logout/",
+                method: "POST",
             }),
         }),
 
@@ -45,6 +87,8 @@ export const authApi = baseApi.injectEndpoints({
 export const {
     useRegisterMutation,
     useLoginMutation,
+    useRefreshTokenMutation,
+    useLogoutMutation,
     useVerifyEmailMutation,
     useResendVerificationEmailMutation,
 } = authApi;

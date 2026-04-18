@@ -1,7 +1,7 @@
 "use client";
 
 import { getApiErrorMessage } from "@/lib/api-error";
-import { registerSchema } from "@/lib/validations/auth.schema";
+import { registerSchema } from "@/store/schemas/auth.schema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useRouter } from "next/navigation";
 import { useState } from "react";

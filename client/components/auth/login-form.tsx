@@ -1,3 +1,5 @@
+"use client";
+
 import { Button } from "@/components/ui/button";
 import {
     Field,
@@ -7,15 +9,81 @@ import {
     FieldSeparator,
 } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
+import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
+import { getApiErrorMessage } from "@/lib/api-error";
+import { loginSchema } from "@/store/schemas/auth.schema";
+import { useLoginMutation } from "@/store/api/authApi";
+import { useAppSelector } from "@/store/hooks/redux-hooks";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Eye, EyeOff } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useForm } from "react-hook-form";
+import { z } from "zod";
+
+type LoginFormData = z.infer<typeof loginSchema>;
 
 export function LoginForm({
     className,
     ...props
 }: React.ComponentProps<"form">) {
+    const router = useRouter();
+    const accessToken = useAppSelector((state) => state.auth.accessToken);
+    const [login, { isLoading }] = useLoginMutation();
+    const [showPassword, setShowPassword] = useState(false);
+    const [submitError, setSubmitError] = useState<string | null>(null);
+    const {
+        register,
+        handleSubmit,
+        formState: { errors },
+    } = useForm<LoginFormData>({
+        resolver: zodResolver(loginSchema),
+        defaultValues: {
+            email: "",
+            password: "",
+        },
+    });
+
+    useEffect(() => {
+        if (accessToken) {
+            router.replace("/dashboard");
+        }
+    }, [accessToken, router]);
+
+    const onSubmit = async (data: LoginFormData) => {
+        setSubmitError(null);
+
+        try {
+            const response = await login({
+                email: data.email.trim().toLowerCase(),
+                password: data.password,
+            }).unwrap();
+
+            if ("access_token" in response.data) {
+                router.replace("/dashboard");
+                return;
+            }
+
+            setSubmitError(
+                "Two-factor authentication is required for this account, but the 2FA login screen is not implemented yet.",
+            );
+        } catch (error) {
+            setSubmitError(
+                getApiErrorMessage(error, {
+                    fallback: "Login failed. Please try again.",
+                }),
+            );
+        }
+    };
+
     return (
-        <form className={cn("flex flex-col gap-6", className)} {...props}>
+        <form
+            onSubmit={handleSubmit(onSubmit)}
+            className={cn("flex flex-col gap-6", className)}
+            {...props}
+        >
             <FieldGroup>
                 <div className="flex flex-col items-center gap-1 text-center">
                     <h1 className="text-2xl font-bold">
@@ -31,8 +99,14 @@ export function LoginForm({
                         id="email"
                         type="email"
                         placeholder="m@example.com"
+                        {...register("email")}
                         required
                     />
+                    {errors.email ? (
+                        <p className="text-sm text-destructive">
+                            {errors.email.message}
+                        </p>
+                    ) : null}
                 </Field>
                 <Field>
                     <div className="flex items-center">
@@ -44,10 +118,51 @@ export function LoginForm({
                             Forgot your password?
                         </a>
                     </div>
-                    <Input id="password" type="password" required />
+                    <div className="relative">
+                        <Input
+                            id="password"
+                            type={showPassword ? "text" : "password"}
+                            className="pr-10"
+                            {...register("password")}
+                            required
+                        />
+                        <button
+                            type="button"
+                            onClick={() => setShowPassword((previous) => !previous)}
+                            className="absolute right-3 top-1/2 -translate-y-1/2"
+                            aria-label={
+                                showPassword ? "Hide password" : "Show password"
+                            }
+                        >
+                            {showPassword ? (
+                                <Eye size={14} className="text-primary" />
+                            ) : (
+                                <EyeOff size={14} className="text-primary" />
+                            )}
+                        </button>
+                    </div>
+                    {errors.password ? (
+                        <p className="text-sm text-destructive">
+                            {errors.password.message}
+                        </p>
+                    ) : null}
                 </Field>
                 <Field>
-                    <Button type="submit">Login</Button>
+                    <Button type="submit" disabled={isLoading}>
+                        {isLoading ? (
+                            <>
+                                <Spinner className="shrink-0" aria-hidden />
+                                Signing in...
+                            </>
+                        ) : (
+                            "Login"
+                        )}
+                    </Button>
+                    {submitError ? (
+                        <p className="mt-2 whitespace-pre-line text-sm text-destructive">
+                            {submitError}
+                        </p>
+                    ) : null}
                 </Field>
                 <FieldSeparator>Or continue with</FieldSeparator>
                 <Field>
