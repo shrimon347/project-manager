@@ -10,7 +10,7 @@ import {
 
 import { API_BASE_URL } from "@/lib/api-base-url";
 import { TokenRefreshResponseData } from "../types/auth.types";
-    
+
 /**
  * Base query with credentials + auth header
  */
@@ -36,14 +36,21 @@ const baseQueryWithReauth: BaseQueryFn<
 > = async (args, api, extraOptions) => {
     let result = await rawBaseQuery(args, api, extraOptions);
 
-    // Normalize URL
-    const url = typeof args === "string" ? args : (args.url ?? "");
+    // Normalize URL/path for endpoint checks
+    const rawUrl = typeof args === "string" ? args : (args.url ?? "");
+    const url = rawUrl.toLowerCase().replace(/^\/+/, "");
 
-    // 🚫 Skip refresh for these endpoints
+    // Skip refresh for these endpoints
     const shouldSkipRefresh =
-        url.includes("auth/login") ||
-        url.includes("auth/logout") ||
-        url.includes("auth/refresh");
+        /(^|\/)auth\/login\/?($|\?)/.test(url) ||
+        /(^|\/)auth\/logout\/?($|\?)/.test(url) ||
+        /(^|\/)auth\/refresh\/?($|\?)/.test(url);
+
+    // Only attempt refresh if we still have an access token in state.
+    // This prevents post-logout 401s from triggering a doomed refresh call.
+    const hasAccessToken = Boolean(
+        (api.getState() as RootState).auth.accessToken,
+    );
 
     // Prevent infinite retry loop
     const isRetry =
@@ -51,8 +58,13 @@ const baseQueryWithReauth: BaseQueryFn<
         args.headers &&
         (args.headers as Record<string, string>)["x-retry"] === "true";
 
-    if (result.error?.status === 401 && !shouldSkipRefresh && !isRetry) {
-        // 🔁 Try refresh token
+    if (
+        result.error?.status === 401 &&
+        hasAccessToken &&
+        !shouldSkipRefresh &&
+        !isRetry
+    ) {
+        // Try refresh token
         const refreshResult = await rawBaseQuery(
             {
                 url: "auth/refresh/",
@@ -64,13 +76,15 @@ const baseQueryWithReauth: BaseQueryFn<
         );
 
         if (refreshResult.data) {
-            const newAccessToken = (refreshResult.data as TokenRefreshResponseData)?.access;
+            const newAccessToken = (
+                refreshResult.data as TokenRefreshResponseData
+            )?.access;
 
             if (newAccessToken) {
                 // Save new access token
                 api.dispatch(setAccessToken(newAccessToken));
 
-                // 🔁 Retry original request ONCE
+                // Retry original request ONCE
                 result = await rawBaseQuery(
                     typeof args === "string"
                         ? args

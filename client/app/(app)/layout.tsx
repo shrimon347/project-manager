@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import DashboardLayout from "@/components/dashboard/dashboardLayout";
 import { useRefreshTokenMutation } from "@/store/api/authApi";
@@ -18,8 +18,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
     const accessToken = useAppSelector((state) => state.auth.accessToken);
     const [refreshToken] = useRefreshTokenMutation();
     const [isChecking, setIsChecking] = useState(true);
+    const hasCheckedSessionRef = useRef(false);
 
     useEffect(() => {
+        if (hasCheckedSessionRef.current) {
+            return;
+        }
+        hasCheckedSessionRef.current = true;
+
         let isMounted = true;
 
         const verifySession = async () => {

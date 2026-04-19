@@ -1,4 +1,4 @@
-import { setAccessToken } from "@/store/slices/authSlice";
+import { loggedOut, setAccessToken } from "@/store/slices/authSlice";
 import type {
     AuthEnvelope,
     Login2faResponseData,
@@ -74,6 +74,16 @@ export const authApi = baseApi.injectEndpoints({
                 method: "POST",
                 body: {},
             }),
+            async onQueryStarted(_, { dispatch, queryFulfilled }) {
+                try {
+                    await queryFulfilled;
+                    dispatch(loggedOut());
+                } catch {
+                    // Even if server logout fails, clear local auth state.
+                    // This prevents stale access token from causing refresh attempts.
+                    dispatch(loggedOut());
+                }
+            },
         }),
 
         verifyEmail: builder.mutation<
