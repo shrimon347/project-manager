@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
+import DashboardLayout from "@/components/dashboard/dashboardLayout";
 import { useRefreshTokenMutation } from "@/store/api/authApi";
 import { useAppDispatch, useAppSelector } from "@/store/hooks";
 import { loggedOut } from "@/store/slices/authSlice";
@@ -59,5 +60,5 @@ export default function AppLayout({ children }: AppLayoutProps) {
         return null;
     }
 
-    return children;
+    return <DashboardLayout>{children}</DashboardLayout>;
 }
