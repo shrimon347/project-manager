@@ -10,8 +10,8 @@ class MeSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ("id", "email", "name")
-        read_only_fields = ("id", "email", "name")
+        fields = ("id", "email", "name", "avatar_url")
+        read_only_fields = ("id", "email", "name", "avatar_url")
 
 
 class RegisterSerializer(serializers.Serializer):

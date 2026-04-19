@@ -24,6 +24,8 @@ import { useAuth } from "@/store/hooks";
 
 export function UserNav() {
     const { user, logout, isLoggingOut } = useAuth();
+    console.log(user);
+    
     return (
         <DropdownMenu>
             <TooltipProvider disableHoverableContent>
@@ -35,9 +37,9 @@ export function UserNav() {
                                 className="relative h-8 w-8 rounded-full"
                             >
                                 <Avatar className="h-8 w-8">
-                                    <AvatarImage src="#" alt="Avatar" />
+                                    <AvatarImage src={user?.avatar_url ?? "#"} alt="Avatar" />
                                     <AvatarFallback className="bg-transparent">
-                                        JD
+                                        {user?.name?.charAt(0)}
                                     </AvatarFallback>
                                 </Avatar>
                             </Button>
