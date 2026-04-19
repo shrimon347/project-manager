@@ -12,11 +12,12 @@ ALLOWED_HOSTS = [
     if host.strip()
 ]
 
-CORS_ALLOWED_ORIGINS = [
-    origin.strip()
-    for origin in os.getenv("CORS_ALLOWED_ORIGINS", "").split(",")
-    if origin.strip()
-]
+# Only override when set; an empty env value would otherwise clear base.py defaults and break credentialed CORS.
+_cors_env = os.getenv("CORS_ALLOWED_ORIGINS", "").strip()
+if _cors_env:
+    CORS_ALLOWED_ORIGINS = [
+        origin.strip() for origin in _cors_env.split(",") if origin.strip()
+    ]
 
 DATABASES["default"]["CONN_MAX_AGE"] = int(os.getenv("DB_CONN_MAX_AGE", "0"))
 

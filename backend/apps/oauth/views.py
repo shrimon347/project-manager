@@ -3,6 +3,7 @@ from rest_framework import permissions, status
 from rest_framework.views import APIView
 
 from apps.auth.responses import set_refresh_cookie
+from apps.auth.serializers import MeSerializer
 from apps.oauth.serializers import OAuthLoginSerializer
 from apps.oauth.services import OAuthService
 from core.responses import success_response
@@ -46,11 +47,12 @@ class OAuthLoginView(APIView):
                 status_code=status.HTTP_200_OK,
             )
 
+        user = result["user"]
         response = success_response(
             message="Login successful.",
             data={
-                "token_type": "Bearer",
-                "access_token": result["access"],
+                "access": result["access"],
+                "user": MeSerializer(user).data,
             },
             status_code=status.HTTP_200_OK,
         )

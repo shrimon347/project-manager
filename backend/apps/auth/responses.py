@@ -31,8 +31,7 @@ def build_refresh_response(*, access_token, refresh_token):
     response = success_response(
         message="Token refreshed successfully.",
         data={
-            "token_type": "Bearer",
-            "access_token": access_token,
+            "access": access_token,
         },
         status_code=status.HTTP_200_OK,
     )
@@ -49,7 +48,16 @@ def build_refresh_response(*, access_token, refresh_token):
 
 
 def get_refresh_token_from_request(request):
-    payload = request.data.copy()
+    """Build a plain dict for serializers: merge JSON/form body with HttpOnly refresh cookie."""
+
+    data = request.data
+    if hasattr(data, "dict"):
+        payload = data.dict()
+    elif isinstance(data, dict):
+        payload = {**data}
+    else:
+        payload = dict(data) if data else {}
+
     cookie_refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME)
     if "refresh" not in payload and cookie_refresh:
         payload["refresh"] = cookie_refresh

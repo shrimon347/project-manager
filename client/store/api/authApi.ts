@@ -1,4 +1,3 @@
-import { baseApi } from "./baseApi";
 import { setAccessToken } from "@/store/slices/authSlice";
 import type {
     AuthEnvelope,
@@ -6,7 +5,10 @@ import type {
     LoginRequest,
     LoginResponseData,
     LogoutResponseData,
+    MeUser,
+    TokenRefreshResponseData,
 } from "@/store/types/auth.types";
+import { baseApi } from "./baseApi";
 
 export const authApi = baseApi.injectEndpoints({
     endpoints: (builder) => ({
@@ -27,11 +29,12 @@ export const authApi = baseApi.injectEndpoints({
                 method: "POST",
                 body: data,
             }),
+            invalidatesTags: ["User"],
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    if ("access_token" in data.data) {
-                        dispatch(setAccessToken(data.data.access_token));
+                    if ("access" in data.data) {
+                        dispatch(setAccessToken(data.data.access));
                     }
                 } catch {
                     // handled by caller
@@ -39,15 +42,27 @@ export const authApi = baseApi.injectEndpoints({
             },
         }),
 
-        refreshToken: builder.mutation<AuthEnvelope<LoginResponseData>, void>({
+        getMe: builder.query<AuthEnvelope<MeUser>, void>({
+            query: () => ({
+                url: "auth/me/",
+                method: "GET",
+            }),
+            providesTags: ["User"],
+        }),
+
+        refreshToken: builder.mutation<
+            AuthEnvelope<TokenRefreshResponseData>,
+            void
+        >({
             query: () => ({
                 url: "auth/refresh/",
                 method: "POST",
+                body: {},
             }),
             async onQueryStarted(_, { dispatch, queryFulfilled }) {
                 try {
                     const { data } = await queryFulfilled;
-                    dispatch(setAccessToken(data.data.access_token));
+                    dispatch(setAccessToken(data.data.access));
                 } catch {
                     // handled by base query/auth guard
                 }
@@ -57,6 +72,7 @@ export const authApi = baseApi.injectEndpoints({
             query: () => ({
                 url: "auth/logout/",
                 method: "POST",
+                body: {},
             }),
         }),
 
@@ -87,6 +103,7 @@ export const authApi = baseApi.injectEndpoints({
 export const {
     useRegisterMutation,
     useLoginMutation,
+    useGetMeQuery,
     useRefreshTokenMutation,
     useLogoutMutation,
     useVerifyEmailMutation,

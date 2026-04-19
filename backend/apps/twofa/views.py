@@ -3,6 +3,7 @@ from rest_framework import permissions, status
 from rest_framework.views import APIView
 
 from apps.auth.responses import set_refresh_cookie
+from apps.auth.serializers import MeSerializer
 from apps.twofa.serializers import TwoFAVerifySerializer
 from apps.twofa.services import TwoFAService
 from core.responses import success_response
@@ -36,11 +37,12 @@ class TwoFAVerifyView(APIView):
             temp_token=serializer.validated_data["temp_token"],
             otp=serializer.validated_data["otp"],
         )
+        user = tokens["user"]
         response = success_response(
             message="Login successful.",
             data={
-                "token_type": "Bearer",
-                "access_token": tokens["access"],
+                "access": tokens["access"],
+                "user": MeSerializer(user).data,
             },
             status_code=status.HTTP_200_OK,
         )

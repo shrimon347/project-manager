@@ -1,17 +1,22 @@
+from core.responses import success_response
 from drf_spectacular.utils import extend_schema
 from rest_framework import permissions, status
 from rest_framework.views import APIView
 
-from apps.auth.responses import clear_refresh_cookie, get_refresh_token_from_request, set_refresh_cookie
+from apps.auth.responses import (
+    clear_refresh_cookie,
+    get_refresh_token_from_request,
+    set_refresh_cookie,
+)
 from apps.auth.serializers import (
     ChangePasswordSerializer,
     LoginSerializer,
     LogoutSerializer,
+    MeSerializer,
     RefreshTokenSerializer,
     RegisterSerializer,
 )
 from apps.auth.services import AuthService
-from core.responses import success_response
 
 
 @extend_schema(tags=["Authentication"])
@@ -52,11 +57,12 @@ class LoginView(APIView):
                 },
                 status_code=status.HTTP_200_OK,
             )
+        user = tokens["user"]
         response = success_response(
             message="Login successful.",
             data={
-                "token_type": "Bearer",
-                "access_token": tokens["access"],
+                "access": tokens["access"],
+                "user": MeSerializer(user).data,
             },
             status_code=status.HTTP_200_OK,
         )
@@ -73,7 +79,9 @@ class LogoutView(APIView):
         serializer = self.serializer_class(data=payload)
         serializer.is_valid(raise_exception=True)
         AuthService.logout_user(refresh_token=serializer.validated_data["refresh"])
-        response = success_response(message="Logout successful.", data={}, status_code=status.HTTP_200_OK)
+        response = success_response(
+            message="Logout successful.", data={}, status_code=status.HTTP_200_OK
+        )
         return clear_refresh_cookie(response=response)
 
 
@@ -86,12 +94,13 @@ class RefreshTokenView(APIView):
         payload = get_refresh_token_from_request(request)
         serializer = self.serializer_class(data=payload)
         serializer.is_valid(raise_exception=True)
-        tokens = AuthService.refresh_tokens(refresh_token=serializer.validated_data["refresh"])
+        tokens = AuthService.refresh_tokens(
+            refresh_token=serializer.validated_data["refresh"]
+        )
         response = success_response(
             message="Token refreshed successfully.",
             data={
-                "token_type": "Bearer",
-                "access_token": tokens["access"],
+                "access": tokens["access"],
             },
             status_code=status.HTTP_200_OK,
         )
@@ -104,7 +113,9 @@ class ChangePasswordView(APIView):
     serializer_class = ChangePasswordSerializer
 
     def put(self, request):
-        serializer = self.serializer_class(data=request.data, context={"user": request.user})
+        serializer = self.serializer_class(
+            data=request.data, context={"user": request.user}
+        )
         serializer.is_valid(raise_exception=True)
         AuthService.change_password(
             user=request.user,
@@ -114,5 +125,18 @@ class ChangePasswordView(APIView):
         return success_response(
             message="Password changed successfully.",
             data={},
+            status_code=status.HTTP_200_OK,
+        )
+
+
+@extend_schema(tags=["Authentication"])
+class MeView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request):
+        user = AuthService.get_current_user(user=request.user)
+        return success_response(
+            message="Current user retrieved successfully.",
+            data=MeSerializer(user).data,
             status_code=status.HTTP_200_OK,
         )

@@ -1,5 +1,5 @@
-import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 import type { AuthState } from "@/store/types/auth.types";
+import { createSlice, type PayloadAction } from "@reduxjs/toolkit";
 
 const ACCESS_TOKEN_KEY = "pm_access_token";
 

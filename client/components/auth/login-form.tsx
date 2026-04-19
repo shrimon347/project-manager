@@ -61,7 +61,7 @@ export function LoginForm({
                 password: data.password,
             }).unwrap();
 
-            if ("access_token" in response.data) {
+            if ("access" in response.data) {
                 router.replace("/dashboard");
                 return;
             }

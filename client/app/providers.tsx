@@ -12,11 +12,7 @@ type ProvidersProps = {
 
 export function Providers({ children }: ProvidersProps) {
     return (
-        <ThemeProvider
-            attribute="class"
-            defaultTheme="system"
-            enableSystem
-        >
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
             <Provider store={store}>
                 {children}
                 <Toaster position="top-center" />

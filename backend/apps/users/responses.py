@@ -50,8 +50,7 @@ def build_refresh_response(*, access_token, refresh_token):
     response = success_response(
         message="Token refreshed successfully.",
         data={
-            "token_type": "Bearer",
-            "access_token": access_token,
+            "access": access_token,
         },
         status_code=status.HTTP_200_OK,
     )

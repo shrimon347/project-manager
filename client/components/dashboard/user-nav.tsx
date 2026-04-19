@@ -20,12 +20,10 @@ import {
     TooltipProvider,
     TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useAppSelector, useAuth } from "@/store/hooks";
+import { useAuth } from "@/store/hooks";
 
 export function UserNav() {
-    const user = useAppSelector((state) => state.auth.user);
-    console.log(user);
-    const { logout, isLoggingOut } = useAuth();
+    const { user, logout, isLoggingOut } = useAuth();
     return (
         <DropdownMenu>
             <TooltipProvider disableHoverableContent>

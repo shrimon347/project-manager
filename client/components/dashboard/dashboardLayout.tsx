@@ -1,5 +1,6 @@
 "use client";
 
+import { AuthSessionProvider } from "@/app/(app)/auth-session-provider";
 import { Footer } from "@/components/dashboard/footer";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { cn } from "@/lib/utils";
@@ -26,7 +27,7 @@ export default function DashboardLayout({
                         (!openState ? "lg:ml-[90px]" : "lg:ml-72"),
                 )}
             >
-                {children}
+                <AuthSessionProvider>{children}</AuthSessionProvider>
             </main>
 
             <footer

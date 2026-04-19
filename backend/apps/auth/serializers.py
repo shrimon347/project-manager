@@ -5,6 +5,15 @@ from rest_framework import serializers
 User = get_user_model()
 
 
+class MeSerializer(serializers.ModelSerializer):
+    """Serialize the authenticated user for `/auth/me/` (response only)."""
+
+    class Meta:
+        model = User
+        fields = ("id", "email", "name")
+        read_only_fields = ("id", "email", "name")
+
+
 class RegisterSerializer(serializers.Serializer):
     email = serializers.EmailField()
     name = serializers.CharField(max_length=50)
@@ -32,6 +41,8 @@ class LoginSerializer(serializers.Serializer):
 
 
 class LogoutSerializer(serializers.Serializer):
+    """Accept refresh from JSON body or from merged cookie data (see get_refresh_token_from_request)."""
+
     refresh = serializers.CharField()
 
 

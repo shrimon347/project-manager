@@ -2,7 +2,6 @@ from django.contrib.auth import authenticate, get_user_model
 from django.core.cache import cache
 from django.utils import timezone
 from rest_framework_simplejwt.tokens import RefreshToken, TokenError
-
 from apps.twofa.services import TwoFAService
 from apps.verifications.services import VerificationService
 from core.exceptions import ConflictException, ForbiddenException, UnauthorizedException
@@ -58,6 +57,12 @@ class AuthService:
         return AuthService.issue_jwt_for_user(user=user)
 
     @staticmethod
+    def get_current_user(*, user):
+        """Return the authenticated user for read-only profile endpoints."""
+
+        return user
+
+    @staticmethod
     def issue_jwt_for_user(*, user):
         """Issue access and refresh JWT tokens for an authenticated user."""
 
@@ -65,6 +70,7 @@ class AuthService:
         return {
             "access": str(refresh.access_token),
             "refresh": str(refresh),
+            "user": user,
         }
 
     @staticmethod
