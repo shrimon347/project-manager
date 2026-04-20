@@ -1,13 +1,17 @@
 import logging
 
+from core.exceptions import (
+    ConflictException,
+    ForbiddenException,
+    NotFoundException,
+    UnauthorizedException,
+)
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from django.db.models import Count
+from django.db.models import Count, OuterRef, Subquery
 from django.utils import timezone
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import AccessToken
-
-from core.exceptions import ConflictException, ForbiddenException, NotFoundException, UnauthorizedException
 
 from .models import Workspace, WorkspaceInvite, WorkspaceMember, WorkspaceRole
 
@@ -32,9 +36,15 @@ class WorkspaceService:
         Returns:
         - dict payload with workspace details
         """
-        workspace = Workspace.objects.create(owner=user, name=name, description=description, color=color)
-        WorkspaceMember.objects.create(workspace=workspace, user=user, role=WorkspaceRole.OWNER)
-        WorkspaceService._log_activity("workspace_created", user_id=str(user.id), workspace_id=str(workspace.id))
+        workspace = Workspace.objects.create(
+            owner=user, name=name, description=description, color=color
+        )
+        WorkspaceMember.objects.create(
+            workspace=workspace, user=user, role=WorkspaceRole.OWNER
+        )
+        WorkspaceService._log_activity(
+            "workspace_created", user_id=str(user.id), workspace_id=str(workspace.id)
+        )
         return WorkspaceService._workspace_payload(workspace, current_user=user)
 
     @staticmethod
@@ -47,13 +57,22 @@ class WorkspaceService:
         Returns:
         - list of workspace payloads
         """
+        membership_qs = WorkspaceMember.objects.filter(
+            workspace=OuterRef("pk"), user=user
+        ).values("role")[:1]
+
         workspaces = (
             Workspace.objects.filter(workspace_memberships__user=user)
             .select_related("owner")
+            .annotate(
+                role=Subquery(membership_qs),
+                member_count=Count("workspace_memberships", distinct=True),
+            )
             .distinct()
             .order_by("-created_at")
         )
-        return [WorkspaceService._workspace_payload(ws, current_user=user) for ws in workspaces]
+
+        return workspaces
 
     @staticmethod
     def get_workspace_details(*, user, workspace_id):
@@ -66,7 +85,9 @@ class WorkspaceService:
         Returns:
         - dict workspace details including members
         """
-        workspace = WorkspaceService._get_member_workspace(user=user, workspace_id=workspace_id)
+        workspace = WorkspaceService._get_member_workspace(
+            user=user, workspace_id=workspace_id
+        )
         memberships = workspace.workspace_memberships.select_related("user").all()
         return {
             **WorkspaceService._workspace_payload(workspace, current_user=user),
@@ -93,7 +114,9 @@ class WorkspaceService:
         Returns:
         - list of project payloads
         """
-        workspace = WorkspaceService._get_member_workspace(user=user, workspace_id=workspace_id)
+        workspace = WorkspaceService._get_member_workspace(
+            user=user, workspace_id=workspace_id
+        )
         projects = workspace.workspace_projects.all().order_by("-created_at")
         return [
             {
@@ -117,7 +140,9 @@ class WorkspaceService:
         Returns:
         - dict containing aggregated stats
         """
-        workspace = WorkspaceService._get_member_workspace(user=user, workspace_id=workspace_id)
+        workspace = WorkspaceService._get_member_workspace(
+            user=user, workspace_id=workspace_id
+        )
         member_count = workspace.workspace_memberships.count()
         project_count = workspace.workspace_projects.count()
         projects_by_status = {}
@@ -126,7 +151,9 @@ class WorkspaceService:
             .annotate(total=Count("id"))
             .order_by()
         )
-        projects_by_status = {row["status"] or "unknown": row["total"] for row in status_rows}
+        projects_by_status = {
+            row["status"] or "unknown": row["total"] for row in status_rows
+        }
         return {
             "workspace_id": str(workspace.id),
             "member_count": member_count,
@@ -148,14 +175,28 @@ class WorkspaceService:
         Returns:
         - dict invite metadata
         """
-        workspace = WorkspaceService._get_member_workspace(user=user, workspace_id=workspace_id)
-        inviter_membership = WorkspaceService._get_membership(workspace=workspace, user=user)
+        workspace = WorkspaceService._get_member_workspace(
+            user=user, workspace_id=workspace_id
+        )
+        inviter_membership = WorkspaceService._get_membership(
+            workspace=workspace, user=user
+        )
         if inviter_membership.role not in {WorkspaceRole.OWNER, WorkspaceRole.ADMIN}:
-            raise ForbiddenException(detail="Only owner/admin can invite members.", code="invite_forbidden")
+            raise ForbiddenException(
+                detail="Only owner/admin can invite members.", code="invite_forbidden"
+            )
 
         existing_user = User.objects.filter(email=email).first()
-        if existing_user and WorkspaceMember.objects.filter(workspace=workspace, user=existing_user).exists():
-            raise ConflictException(detail="User is already a workspace member.", errors={"email": "Already a member."})
+        if (
+            existing_user
+            and WorkspaceMember.objects.filter(
+                workspace=workspace, user=existing_user
+            ).exists()
+        ):
+            raise ConflictException(
+                detail="User is already a workspace member.",
+                errors={"email": "Already a member."},
+            )
 
         active_invite_exists = WorkspaceInvite.objects.filter(
             workspace=workspace,
@@ -164,7 +205,10 @@ class WorkspaceService:
             expires_at__gt=timezone.now(),
         ).exists()
         if active_invite_exists:
-            raise ConflictException(detail="An active invite already exists.", errors={"email": "Duplicate invite."})
+            raise ConflictException(
+                detail="An active invite already exists.",
+                errors={"email": "Duplicate invite."},
+            )
 
         invite, _ = WorkspaceInvite.issue_token(
             workspace=workspace,
@@ -179,8 +223,14 @@ class WorkspaceService:
             role=role,
             expires_at=invite.expires_at,
         )
-        WorkspaceService._send_invite_email(email=email, token=jwt_token, workspace_name=workspace.name)
-        WorkspaceService._log_activity("workspace_invite_created", user_id=str(user.id), workspace_id=str(workspace.id))
+        WorkspaceService._send_invite_email(
+            email=email, token=jwt_token, workspace_name=workspace.name
+        )
+        WorkspaceService._log_activity(
+            "workspace_invite_created",
+            user_id=str(user.id),
+            workspace_id=str(workspace.id),
+        )
         return {
             "invite_id": str(invite.id),
             "email": email,
@@ -200,26 +250,44 @@ class WorkspaceService:
         Returns:
         - dict containing workspace member context
         """
-        workspace = Workspace.objects.filter(id=workspace_id).select_related("owner").first()
+        workspace = (
+            Workspace.objects.filter(id=workspace_id).select_related("owner").first()
+        )
         if not workspace:
-            raise NotFoundException(detail="Workspace not found.", code="workspace_not_found")
+            raise NotFoundException(
+                detail="Workspace not found.", code="workspace_not_found"
+            )
         if WorkspaceMember.objects.filter(workspace=workspace, user=user).exists():
-            raise ConflictException(detail="You are already a member of this workspace.")
+            raise ConflictException(
+                detail="You are already a member of this workspace."
+            )
 
-        invite = WorkspaceInvite.objects.filter(
-            workspace=workspace,
-            email=user.email,
-            accepted_at__isnull=True,
-        ).order_by("-created_at").first()
+        invite = (
+            WorkspaceInvite.objects.filter(
+                workspace=workspace,
+                email=user.email,
+                accepted_at__isnull=True,
+            )
+            .order_by("-created_at")
+            .first()
+        )
         if not invite:
-            raise NotFoundException(detail="No pending invite found for user.", code="invite_not_found")
+            raise NotFoundException(
+                detail="No pending invite found for user.", code="invite_not_found"
+            )
         if invite.is_expired():
-            raise UnauthorizedException(detail="Invite has expired.", code="invite_expired")
+            raise UnauthorizedException(
+                detail="Invite has expired.", code="invite_expired"
+            )
 
         WorkspaceMember.objects.create(workspace=workspace, user=user, role=invite.role)
         invite.accepted_at = timezone.now()
         invite.save(update_fields=["accepted_at", "updated_at"])
-        WorkspaceService._log_activity("workspace_invite_accepted", user_id=str(user.id), workspace_id=str(workspace.id))
+        WorkspaceService._log_activity(
+            "workspace_invite_accepted",
+            user_id=str(user.id),
+            workspace_id=str(workspace.id),
+        )
         return WorkspaceService._workspace_payload(workspace, current_user=user)
 
     @staticmethod
@@ -235,27 +303,50 @@ class WorkspaceService:
         - dict containing joined workspace payload
         """
         payload = WorkspaceService._decode_invite_jwt(token=token)
-        invite = WorkspaceInvite.objects.filter(id=payload["invite_id"]).select_related("workspace").first()
+        invite = (
+            WorkspaceInvite.objects.filter(id=payload["invite_id"])
+            .select_related("workspace")
+            .first()
+        )
         if not invite:
             raise NotFoundException(detail="Invite not found.", code="invite_not_found")
         if invite.accepted_at:
-            raise ConflictException(detail="Invite already accepted.", code="invite_already_used")
+            raise ConflictException(
+                detail="Invite already accepted.", code="invite_already_used"
+            )
         if invite.is_expired():
-            raise UnauthorizedException(detail="Invite has expired.", code="invite_expired")
+            raise UnauthorizedException(
+                detail="Invite has expired.", code="invite_expired"
+            )
         if invite.email != user.email:
-            raise ForbiddenException(detail="Invite token email does not match current user.", code="invite_user_mismatch")
-        if WorkspaceMember.objects.filter(workspace=invite.workspace, user=user).exists():
-            raise ConflictException(detail="User already in workspace.", code="already_member")
+            raise ForbiddenException(
+                detail="Invite token email does not match current user.",
+                code="invite_user_mismatch",
+            )
+        if WorkspaceMember.objects.filter(
+            workspace=invite.workspace, user=user
+        ).exists():
+            raise ConflictException(
+                detail="User already in workspace.", code="already_member"
+            )
 
-        WorkspaceMember.objects.create(workspace=invite.workspace, user=user, role=payload["role"])
+        WorkspaceMember.objects.create(
+            workspace=invite.workspace, user=user, role=payload["role"]
+        )
         invite.accepted_at = timezone.now()
         invite.save(update_fields=["accepted_at", "updated_at"])
-        WorkspaceService._log_activity("workspace_invite_accepted_token", user_id=str(user.id), workspace_id=str(invite.workspace.id))
+        WorkspaceService._log_activity(
+            "workspace_invite_accepted_token",
+            user_id=str(user.id),
+            workspace_id=str(invite.workspace.id),
+        )
         return WorkspaceService._workspace_payload(invite.workspace, current_user=user)
 
     @staticmethod
     def _workspace_payload(workspace, *, current_user):
-        membership = WorkspaceMember.objects.filter(workspace=workspace, user=current_user).first()
+        membership = WorkspaceMember.objects.filter(
+            workspace=workspace, user=current_user
+        ).first()
         return {
             "id": str(workspace.id),
             "name": workspace.name,
@@ -268,18 +359,29 @@ class WorkspaceService:
 
     @staticmethod
     def _get_member_workspace(*, user, workspace_id):
-        workspace = Workspace.objects.filter(id=workspace_id).select_related("owner").first()
+        workspace = (
+            Workspace.objects.filter(id=workspace_id).select_related("owner").first()
+        )
         if not workspace:
-            raise NotFoundException(detail="Workspace not found.", code="workspace_not_found")
+            raise NotFoundException(
+                detail="Workspace not found.", code="workspace_not_found"
+            )
         if not WorkspaceMember.objects.filter(workspace=workspace, user=user).exists():
-            raise ForbiddenException(detail="Only workspace members can access this resource.", code="workspace_access_denied")
+            raise ForbiddenException(
+                detail="Only workspace members can access this resource.",
+                code="workspace_access_denied",
+            )
         return workspace
 
     @staticmethod
     def _get_membership(*, workspace, user):
-        membership = WorkspaceMember.objects.filter(workspace=workspace, user=user).first()
+        membership = WorkspaceMember.objects.filter(
+            workspace=workspace, user=user
+        ).first()
         if not membership:
-            raise ForbiddenException(detail="You are not a workspace member.", code="workspace_access_denied")
+            raise ForbiddenException(
+                detail="You are not a workspace member.", code="workspace_access_denied"
+            )
         return membership
 
     @staticmethod
@@ -298,18 +400,29 @@ class WorkspaceService:
         try:
             payload = AccessToken(token)
         except TokenError as exc:
-            raise UnauthorizedException(detail="Invalid invite token.", code="invalid_invite_token") from exc
+            raise UnauthorizedException(
+                detail="Invalid invite token.", code="invalid_invite_token"
+            ) from exc
 
         required_keys = {"invite_id", "workspace_id", "role", "expiry"}
         if not required_keys.issubset(set(payload.keys())):
-            raise UnauthorizedException(detail="Malformed invite token.", code="invalid_invite_token")
+            raise UnauthorizedException(
+                detail="Malformed invite token.", code="invalid_invite_token"
+            )
         if timezone.now().timestamp() >= int(payload["expiry"]):
-            raise UnauthorizedException(detail="Invite token has expired.", code="invite_expired")
+            raise UnauthorizedException(
+                detail="Invite token has expired.", code="invite_expired"
+            )
         return payload
 
     @staticmethod
     def _send_invite_email(*, email, token, workspace_name):
-        logger.info("[MOCK EMAIL] invite email=%s workspace=%s token=%s", email, workspace_name, token)
+        logger.info(
+            "[MOCK EMAIL] invite email=%s workspace=%s token=%s",
+            email,
+            workspace_name,
+            token,
+        )
 
     @staticmethod
     def _log_activity(event, **metadata):

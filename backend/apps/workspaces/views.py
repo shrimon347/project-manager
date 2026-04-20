@@ -9,6 +9,7 @@ from .serializers import (
     WorkspaceDetailResponseSerializer,
     WorkspaceInviteSerializer,
     WorkspaceInviteTokenSerializer,
+    WorkspaceListSerializer,
     WorkspaceProjectResponseSerializer,
     WorkspaceStatsResponseSerializer,
     WorkspaceSummaryResponseSerializer,
@@ -29,7 +30,10 @@ class WorkspaceCollectionView(APIView):
     """
 
     permission_classes = [permissions.IsAuthenticated]
-    serializer_class = WorkspaceCreateSerializer
+    def get_serializer_class(self):
+        if self.request.method == "POST":
+            return WorkspaceCreateSerializer
+        return WorkspaceListSerializer
 
     @extend_schema(operation_id="workspaces_create")
     def post(self, request):
@@ -41,7 +45,8 @@ class WorkspaceCollectionView(APIView):
         Returns:
         - standardized success response with workspace data
         """
-        serializer = self.serializer_class(data=request.data)
+        serializer_class = self.get_serializer_class()
+        serializer = serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         workspace = WorkspaceService.create_workspace(user=request.user, **serializer.validated_data)
         return success_response(
@@ -61,9 +66,11 @@ class WorkspaceCollectionView(APIView):
         - standardized success response with workspace list
         """
         workspaces = WorkspaceService.list_user_workspaces(user=request.user)
+        serializer = WorkspaceListSerializer(workspaces, many=True)
+
         return success_response(
             message="Workspaces fetched successfully.",
-            data={"workspaces": workspaces},
+            data={"workspaces": serializer.data},
             status_code=status.HTTP_200_OK,
         )
 

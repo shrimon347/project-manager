@@ -7,7 +7,9 @@ class WorkspaceCreateSerializer(serializers.Serializer):
     """Validate workspace creation payload for service layer usage."""
 
     name = serializers.CharField(max_length=120)
-    description = serializers.CharField(required=False, allow_blank=True, allow_null=True)
+    description = serializers.CharField(
+        required=False, allow_blank=True, allow_null=True
+    )
     color = serializers.CharField(max_length=16, required=False, default="#FF5733")
 
     def validate_name(self, value):
@@ -17,11 +19,24 @@ class WorkspaceCreateSerializer(serializers.Serializer):
         return trimmed
 
 
+class WorkspaceListSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    name = serializers.CharField()
+    description = serializers.CharField(allow_null=True)
+    color = serializers.CharField()
+    created_at = serializers.DateTimeField()
+
+    member_count = serializers.IntegerField() 
+    role = serializers.CharField()
+
+
 class WorkspaceInviteSerializer(serializers.Serializer):
     """Validate invite payload for service layer usage."""
 
     email = serializers.EmailField()
-    role = serializers.ChoiceField(choices=WorkspaceRole.choices, default=WorkspaceRole.MEMBER)
+    role = serializers.ChoiceField(
+        choices=WorkspaceRole.choices, default=WorkspaceRole.MEMBER
+    )
 
     def validate_email(self, value):
         return value.strip().lower()
