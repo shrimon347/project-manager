@@ -39,5 +39,4 @@ LOGGING["loggers"]["django.utils.autoreload"] = {
 LOGGING["formatters"]["json"] = {
     "()": "core.logging.JsonFormatter",
 }
-LOGGING["handlers"]["console"]["formatter"] = "json"
 LOGGING["handlers"]["app_file"]["formatter"] = "json"

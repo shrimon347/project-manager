@@ -161,8 +161,8 @@ REST_FRAMEWORK = {
 }
 
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
-    "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
+    "ACCESS_TOKEN_LIFETIME": timedelta(seconds=15),
+    "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "UPDATE_LAST_LOGIN": True,
@@ -218,7 +218,7 @@ LOGGING = {
     "handlers": {
         "console": {
             "class": "logging.StreamHandler",
-            "level": "ERROR",
+            "level": "INFO",  # change this
             "formatter": "standard",
             "filters": ["request_context"],
         },
@@ -244,7 +244,7 @@ LOGGING = {
         },
         "django.server": {
             "handlers": ["console", "app_file"],
-            "level": "ERROR",
+            "level": "INFO",
             "propagate": False,
         },
         "django.db.backends": {

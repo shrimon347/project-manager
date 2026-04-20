@@ -95,7 +95,7 @@ class AuthService:
     @staticmethod
     def refresh_tokens(*, refresh_token):
         """Rotate refresh token and issue new access token."""
-
+        print("🔍 validating refresh token...")
         try:
             old_refresh = RefreshToken(refresh_token)
             user_id = old_refresh.get("user_id")
@@ -118,6 +118,7 @@ class AuthService:
                 "refresh": str(new_refresh),
             }
         except TokenError as exc:
+            print("❌ TokenError:", str(exc))
             raise UnauthorizedException(
                 detail="Invalid or expired token.",
                 code="invalid_token",
