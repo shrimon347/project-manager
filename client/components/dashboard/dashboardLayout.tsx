@@ -1,9 +1,12 @@
 "use client";
 
 import { AuthSessionProvider } from "@/app/(app)/auth-session-provider";
+import { ContentLayout } from "@/components/dashboard/content-layout";
+import { DashboardBreadcrumb } from "@/components/dashboard/dashboard-breadcrumb";
 import { Footer } from "@/components/dashboard/footer";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { cn } from "@/lib/utils";
+import { usePathname } from "next/navigation";
 
 import { useAppSelector } from "@/store/hooks";
 import { selectSidebarOpenState } from "@/store/selectors/sidebarSelectors";
@@ -16,6 +19,11 @@ export default function DashboardLayout({
     const settings = useAppSelector((state) => state.sidebar.settings);
     const openState = useAppSelector(selectSidebarOpenState);
 
+    const pathname = usePathname();
+
+    let title = "Dashboard";
+    if (pathname.startsWith("/workspace")) title = "Workspace";
+
     return (
         <>
             <Sidebar />
@@ -27,7 +35,14 @@ export default function DashboardLayout({
                         (!openState ? "lg:ml-[90px]" : "lg:ml-72"),
                 )}
             >
-                <AuthSessionProvider>{children}</AuthSessionProvider>
+                <AuthSessionProvider>
+                    <ContentLayout
+                        title={title}
+                        header={<DashboardBreadcrumb page={title} />}
+                    >
+                        {children}
+                    </ContentLayout>
+                </AuthSessionProvider>
             </main>
 
             <footer
