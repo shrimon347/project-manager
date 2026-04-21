@@ -91,10 +91,7 @@ class RefreshTokenView(APIView):
     serializer_class = RefreshTokenSerializer
 
     def post(self, request):
-        print("🔥 refresh endpoint hit")
-
         payload = get_refresh_token_from_request(request)
-        print("payload:", payload)
         serializer = self.serializer_class(data=payload)
         serializer.is_valid(raise_exception=True)
         tokens = AuthService.refresh_tokens(
@@ -107,7 +104,6 @@ class RefreshTokenView(APIView):
             },
             status_code=status.HTTP_200_OK,
         )
-        print("payload:", payload)
         return set_refresh_cookie(response=response, refresh_token=tokens["refresh"])
 
 

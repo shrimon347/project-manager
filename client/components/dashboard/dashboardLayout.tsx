@@ -1,6 +1,5 @@
 "use client";
 
-import { AuthSessionProvider } from "@/app/(app)/auth-session-provider";
 import { ContentLayout } from "@/components/dashboard/content-layout";
 import { DashboardBreadcrumb } from "@/components/dashboard/dashboard-breadcrumb";
 import { Footer } from "@/components/dashboard/footer";
@@ -35,14 +34,12 @@ export default function DashboardLayout({
                         (!openState ? "lg:ml-[90px]" : "lg:ml-72"),
                 )}
             >
-                <AuthSessionProvider>
-                    <ContentLayout
-                        title={title}
-                        header={<DashboardBreadcrumb page={title} />}
-                    >
-                        {children}
-                    </ContentLayout>
-                </AuthSessionProvider>
+                <ContentLayout
+                    title={title}
+                    header={<DashboardBreadcrumb page={title} />}
+                >
+                    {children}
+                </ContentLayout>
             </main>
 
             <footer

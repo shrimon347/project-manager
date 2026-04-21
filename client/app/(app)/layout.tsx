@@ -1,12 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect } from "react";
 
 import DashboardLayout from "@/components/dashboard/dashboardLayout";
-import { useRefreshTokenMutation } from "@/store/api/authApi";
-import { useAppDispatch, useAppSelector } from "@/store/hooks";
-import { loggedOut } from "@/store/slices/authSlice";
+import { useGetMeQuery } from "@/store/api/authApi";
+import { useAppSelector } from "@/store/hooks";
 
 type AppLayoutProps = {
     children: React.ReactNode;
@@ -14,45 +13,20 @@ type AppLayoutProps = {
 
 export default function AppLayout({ children }: AppLayoutProps) {
     const router = useRouter();
-    const dispatch = useAppDispatch();
     const accessToken = useAppSelector((state) => state.auth.accessToken);
-    const [refreshToken] = useRefreshTokenMutation();
-    const [isChecking, setIsChecking] = useState(true);
-    const hasCheckedSessionRef = useRef(false);
+    const { isLoading, isFetching } = useGetMeQuery();
+
+    const isChecking = isLoading || isFetching;
 
     useEffect(() => {
-        if (hasCheckedSessionRef.current) {
+        if (isChecking) {
             return;
         }
-        hasCheckedSessionRef.current = true;
 
-        let isMounted = true;
-
-        const verifySession = async () => {
-            if (accessToken) {
-                if (isMounted) {
-                    setIsChecking(false);
-                }
-                return;
-            }
-
-            try {
-                await refreshToken().unwrap();
-            } catch {
-                dispatch(loggedOut());
-                router.replace("/login");
-            } finally {
-                if (isMounted) {
-                    setIsChecking(false);
-                }
-            }
-        };
-
-        void verifySession();
-        return () => {
-            isMounted = false;
-        };
-    }, [accessToken, dispatch, refreshToken, router]);
+        if (!accessToken) {
+            router.replace("/login");
+        }
+    }, [accessToken, isChecking, router]);
 
     if (isChecking) {
         return (
@@ -63,7 +37,11 @@ export default function AppLayout({ children }: AppLayoutProps) {
     }
 
     if (!accessToken) {
-        return null;
+        return (
+            <div className="flex min-h-svh items-center justify-center text-sm text-muted-foreground">
+                Redirecting to login...
+            </div>
+        );
     }
 
     return <DashboardLayout>{children}</DashboardLayout>;

@@ -11,6 +11,8 @@ import {
 import { API_BASE_URL } from "@/lib/api-base-url";
 import { TokenRefreshResponseData } from "../types/auth.types";
 
+let refreshPromise: Promise<string | null> | null = null;
+
 /**
  * Base query with credentials + auth header
  */
@@ -46,64 +48,58 @@ const baseQueryWithReauth: BaseQueryFn<
         /(^|\/)auth\/logout\/?($|\?)/.test(url) ||
         /(^|\/)auth\/refresh\/?($|\?)/.test(url);
 
-    // Only attempt refresh if we still have an access token in state.
-    // This prevents post-logout 401s from triggering a doomed refresh call.
-    const hasAccessToken = Boolean(
-        (api.getState() as RootState).auth.accessToken,
-    );
-
     // Prevent infinite retry loop
     const isRetry =
         typeof args !== "string" &&
         args.headers &&
         (args.headers as Record<string, string>)["x-retry"] === "true";
 
-    if (
-        result.error?.status === 401 &&
-        hasAccessToken &&
-        !shouldSkipRefresh &&
-        !isRetry
-    ) {
-        // Try refresh token
-        const refreshResult = await rawBaseQuery(
-            {
-                url: "auth/refresh/",
-                method: "POST",
-                credentials: "include", // ensure cookie is sent
-            },
-            api,
-            extraOptions,
-        );
-
-        if (refreshResult.data) {
-            const newAccessToken = (
-                refreshResult.data as TokenRefreshResponseData
-            )?.access;
-
-            if (newAccessToken) {
-                // Save new access token
-                api.dispatch(setAccessToken(newAccessToken));
-
-                // Retry original request ONCE
-                result = await rawBaseQuery(
-                    typeof args === "string"
-                        ? args
-                        : {
-                              ...args,
-                              headers: {
-                                  ...(args.headers || {}),
-                                  "x-retry": "true",
-                              },
-                          },
+    if (result.error?.status === 401 && !shouldSkipRefresh && !isRetry) {
+        if (!refreshPromise) {
+            refreshPromise = (async () => {
+                const refreshResult = await rawBaseQuery(
+                    {
+                        url: "auth/refresh/",
+                        method: "POST",
+                        credentials: "include",
+                    },
                     api,
                     extraOptions,
                 );
-            } else {
-                // No token → logout
-                api.dispatch(loggedOut());
-            }
+
+                const newAccessToken = (
+                    refreshResult.data as TokenRefreshResponseData | undefined
+                )?.access;
+
+                if (newAccessToken) {
+                    api.dispatch(setAccessToken(newAccessToken));
+                    return newAccessToken;
+                }
+
+                return null;
+            })().finally(() => {
+                refreshPromise = null;
+            });
+        }
+
+        const refreshedAccessToken = await refreshPromise;
+
+        if (refreshedAccessToken) {
+            // Retry original request ONCE after the shared refresh completes.
+            result = await rawBaseQuery(
+                typeof args === "string"
+                    ? args
+                    : {
+                          ...args,
+                          headers: {
+                              ...(args.headers || {}),
+                              "x-retry": "true",
+                          },
+                      },
+                api,
+                extraOptions,
+            );
         } else {
-            // Refresh failed → logout
             api.dispatch(loggedOut());
         }
     }
